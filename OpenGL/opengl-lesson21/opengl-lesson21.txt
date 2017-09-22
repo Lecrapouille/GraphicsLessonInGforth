@@ -1,0 +1,257 @@
+---[ gforth: OpenGL Graphics Lesson 21 ]--------------[08/01/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson21.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 21 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-color-3ub ( red green blue -- )
+
+    Set the current color.
+
+    Parameters <red>, <green> and <blue> are unsigned bytes.
+
+gl-line-width ( width -- )
+
+    Specify the width of rasterized lines.
+
+    Parameter <width> is a 32-bit floating point value.
+    
+gl-scale-f ( x y z -- )
+
+    Multiply the current matrix by a general scaling matrix.
+
+    Parameters <x>, <y> and <z> are 32-bit floating point values.
+    
+    (In gforth, as these are passed by value, there is no conversion
+    necessary to make these values into 32-bit floats from the normal
+    gforth 64-bit floating point value.)
+
+gl-vertex-2d ( x y -- )
+
+    Specify a vertex.
+
+    Parameters <x> and <y> are 64-bit doubles (floating point) values
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+ 
+For this Lesson, we are implementing a new SDL package - SDL_mixer.
+This package allows our programs to use audio files, as this Lesson
+will be demonstrating.
+
+mix-close-audio ( -- )
+
+    Performs shutdown and cleanup of Mixer API.
+
+mix-free-chunk ( *chunk -- )
+
+    Free the memory used in chunk, and free chunk itself as well.
+
+    Parameter <*chunk> is a 32-bit pointer to an audio chunk.
+    
+mix-free-music ( *music -- )
+
+    Free the loaded music. If music is playing it will be halted.
+    If music is fading out, then this function will wait (blocking)
+    until the fade out is complete.
+
+    Parameter <*music> is a 32-bit pointer to a loaded audio file.
+
+mix-halt-channel ( channel -- 0 )
+
+    Halt the playback on a specific channel - or on ALL channels if
+    <channel> is -1.
+    
+    Parameter <channel> is an integer value.
+
+      channel: Channel to stop playing, or -1 for all channels.
+
+    Return value: Always returns a zero value.
+
+mix-halt-music ( -- 0 )
+
+    Halt playback of music. This interrupts music fader effects.
+
+    Return value: Always returns a zero value.
+
+mix-load-mus ( *filename -- *music )
+
+    Load music file to use. This can load WAVE, MOD, MIDI, OGG, MP3,
+    FLAC, and any file that you use a command to play with.
+
+    Parameter <*filename> is a zero-delimited string specifying the
+    path and name of the audio file to be loaded.
+
+    Return value: 32-bit pointer to the Mix_Music type that contains
+    the information about the loaded audio file.
+
+mix-load-wav ( *filename -- *chunk )
+
+    Load file for use as a sample.
+    This is actually Mix_LoadWAV_RW(SDL_RWFromFile(file,"rb"), 1).
+    This can load WAVE, AIFF, RIFF, OGG, and VOC files.
+
+    Parameter <*filename> is a zero-delimited string specifying the
+    path and name of the audio file to be loaded.
+
+    Note: You must call SDL OpenAudio before this. It must know the
+          output characteristics so it can convert the sample for
+          playback, it does this conversion at load time.
+
+    Return value: 32-bit pointer to the sample as a Mix_Chunk.
+    NULL is returned on errors.
+
+mix-open-audio ( frequency format channels chunksize -- boolean )
+      Mix_OpenAudio            n n n n -- n
+
+    Initialize the mixer API.
+    This must be called before using other functions in this library.
+    SDL must be initialized with SDL INIT AUDIO before this call.
+
+    Parameters: all parameters are integer values.
+    
+      frequency: defines the output sampling frequency in samples
+          per second (Hz).
+
+      format: defines the output sample format.
+
+      channels: defines the number of sound channels in output.
+          Set to 2 for stereo, 1 for mono.
+          This has nothing to do with mixing channels.
+
+      chunksize: defines the bytes used per output sample.
+
+    Return value: 0 on success, -1 on errors
+
+mix-play-music ( *music loops -- boolean )
+
+    Play the loaded music loop times through from start to finish.
+    The previous music will be halted, or if fading out it waits
+    (blocking) for that to finish.
+
+    Parameter <*music> is a 32-bit pointer to the loaded audio data.
+    <loops> is an integer value.
+
+      music: Pointer to Mix_Music to play.
+
+      loops: number of times to play through the music.
+          0 plays the music zero times...
+          -1 plays the music forever
+
+    Return value: 0 on success, -1 on errors
+
+mix-play-channel ( channel *chunk loops -- channel/-1 )
+
+    Play chunk on channel, or if channel is -1, pick the first free
+    unreserved channel. The sample will play for loops+1 number of
+    times, unless stopped by halt, or fade out, or setting a new
+    expiration time of less time than it would have originally taken
+    to play the loops, or closing the mixer.
+
+    Parameters <channel> and <loops> are integer values; <*chunk> is
+    a 32-bit pointer to the loaded audio chunk.
+    
+      channel: Channel to play on, or -1 for the first free
+          unreserved channel.
+
+      chunk: Sample to play.
+
+      loops: Number of loops, -1 is infinite loops.
+          Passing one here plays the sample twice (1 loop).
+
+    Return value: the channel the sample is played on.
+    
+    On any errors, -1 is returned.
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+four files to that directory:
+
+        opengl-lesson21.fs      - Code Addendum 1
+        opengllib-1.21.fs       - Code Addendum 2
+        mini-opengl-1.21.fs     - Code Addendum 3
+        mini-mixer-1.00.fs      - Code Addendum 4
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson uses two image files and five audio files, which you can
+retrieve from the NeHe Lesson 21 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=21
+
+or from the opengl-lesson21.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson21.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.21.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson21.fs
+        lesson21
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson21.fs
+        lesson21
+
+This Lesson utilizes the SDL_mixer package, and it will need to be
+installed before compiling the Lesson code.  I have not included any
+conditional compilation code to prevent the mixer references from
+being compiled, although you can choose to not have the sound used by
+setting the flag <Sound> to FALSE - but the mixer libcc code will
+still be compiled whether the <Sound> flag is TRUE or FALSE.
+
+If you did not install the SDL_mixer package, I detailed how to do so
+in my post of 07/01/2010 on comp.lang.forth in:
+
+                  gforth: OpenGL Graphics Part I
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 22 - Bump mapping (extensions)
+
+----------------------------------------------------[End Lesson21]---
+

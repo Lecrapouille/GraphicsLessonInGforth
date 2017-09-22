@@ -1,0 +1,237 @@
+---[ gforth: OpenGL Graphics Lesson 13 ]--------------[07/31/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson13.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 13 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-call-lists ( n type *lists -- )
+
+    Execute a list of display lists.
+
+    Parameters <n> and <type> are integer values, and <*lists> is a
+    32-bit pointer to the array of name offsets.
+    
+      n:  Specifies the number of display lists to be executed.
+
+      type: Specifies the type of values in lists. Symbolic constants
+          GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_UNSIGNED_SHORT,
+          GL_INT, GL_UNSIGNED_INT, GL_FLOAT, GL_2_BYTES, GL_3_BYTES
+          and GL_4_BYTES are accepted.
+
+      lists: Specifies the address of an array of name offsets in the
+          display list. The pointer type is void because the offsets
+          can be bytes, shorts, ints, or floats, depending on the
+          value of type.
+
+gl-delete-lists ( list range -- )
+
+    Delete a contiguous group of display lists.
+    
+    Parameters <list> and <range> are integer values.
+    
+      list: Specifies the integer name of the first display list to
+          delete.
+      
+      range: Specifies the number of display lists to delete.
+
+gl-list-base ( base -- )
+
+    Set the display-list base for gl-call-lists.
+
+    Parameter <base> is an integer value.
+
+      base: Specifies an integer offset that will be added to
+          glCallLists offsets to generate display-list names. The
+          initial value is 0.
+
+gl-pop-attrib ( -- )
+
+    Pop the server attribute stack.
+
+gl-push-attrib ( mask -- )
+
+    Push the server attribute stack.
+    
+    Parameter <mask> is an integer value.
+    
+gl-raster-pos-2f ( x y -- )
+
+    Specify the raster position for pixel operations
+
+    Parameters <x> and <y> are floating point values.
+
+    (In gforth, as these are passed by value, there is no conversion
+    necessary to make these values into 32-bit floats from the normal
+    gforth 64-bit floating point value.)
+
+gl-xusexfont ( font first count listbase -- )
+
+    Create bitmap display lists from an X font
+    
+    Parameter <font> is a 32-bit pointer to a Font Struct.
+    <first>, <count> and <listbase> are integer values.
+
+      font: Specifies the font from which character glyphs are to be
+          taken.
+
+      Note: <font> is treated as a 32-bit pointer; the C++ compiler
+            burps when an <a> parameter is used in the libcc
+            definition, but works correctly with an <n> parameter,
+            which is why this parameter is an <n> in the libcc file.
+                                    
+      first: Specifies the index of the first glyph to be taken.
+                    
+      count: Specifies the number of glyphs to be taken.
+                    
+      listBase: Specifies the index of the first display list to be
+          generated.
+                    
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+The following functions are from the X11 package, and are used to
+access specific components of the X server - in the case of this
+Lesson, the fonts.
+
+What is X11?
+
+            http://en.wikipedia.org/wiki/X_Window_System
+
+gives a description of the X systems.  If SDL and OpenGL did not
+exist, these Tutorials would be about implementing an X interface in
+gforth.
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+x-closedisplay ( *display -- status )
+
+    Closes the connection to the X server.
+    
+    Parameter <*display> is a 32-bit pointer to a Display struct
+    that serves as the connection to the X server and that contains
+    all the information about that X server.
+
+x-freefont ( *display *font_struct -- status )
+
+    Deletes the association between the font resource ID and the
+    specified font and frees the XFontStruct structure. The font
+    itself will be freed when no other resource references it. The
+    data and the font should not be referenced again. 
+
+    Parameter <*display> is a 32-bit pointer to a Display struct
+    that serves as the connection to the X server and that contains
+    all the information about that X server.
+
+    Parameter <*font_struct> is the font structure returned by the
+    call to x-loadqueryfont.
+    
+x-loadqueryfont ( *display *name -- *font_struct )
+
+    Provides the most common way for accessing a font.
+    XLoadQueryFont() both opens (loads) the specified font and
+    returns a pointer to the appropriate XFontStruct structure. If
+    the font name is not in the Host Portable Character Encoding, the
+    result is implementation dependent. If the font does not exist,
+    XLoadQueryFont() returns NULL. 
+
+    Parameter <*display> is a 32-bit pointer to a Display struct
+    that serves as the connection to the X server and that contains
+    all the information about that X server.
+
+    Parameter <*name> specifies the name of the font, which is a
+    null-terminated string. 
+    
+    Return value <*font_struct> is a 32-bit pointer to an XFontStruct
+    structure which contains all of the information for the font and
+    consists of the font-specific information as well as a pointer to
+    an array of XCharStruct structures for the characters contained
+    in the font.
+    
+x-opendisplay ( display_name -- *display )
+
+    Parameter <*display> is a 32-bit pointer that specifies the
+    hardware display name, which determines the display and
+    communications domain to be used. On a POSIX-conformant system,
+    if the display_name is NULL, it defaults to the value of the
+    DISPLAY environment variable. 
+
+    Return value <*display> is a 32-bit pointer to a Display struct
+    that serves as the connection to the X server and that contains
+    all the information about that X server.
+
+    If successful, x-opendisplay returns a pointer to a Display
+    structure, which is defined in X11/Xlib.h.
+    
+    If x-opendisplay does not succeed, it returns NULL.
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+three files to that directory:
+
+        opengl-lesson13.fs      - Code Addendum 1
+        opengllib-1.13.fs       - Code Addendum 2
+        mini-opengl-1.13.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+For the files from the opengl-lesson13.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.13.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson13.fs
+        lesson13
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson13.fs
+        lesson13
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 16 - Cool looking fog
+
+----------------------------------------------------[End Lesson13]---
+

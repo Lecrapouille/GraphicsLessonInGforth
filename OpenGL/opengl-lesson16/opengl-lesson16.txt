@@ -1,0 +1,145 @@
+---[ gforth: OpenGL Graphics Lesson 16 ]--------------[07/31/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson16.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 16 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-delete-textures ( n *textures -- )
+
+    Delete named textures.
+    
+    Parameter <n> is an integer value; parameter <*textures> is a
+    32-bit pointer to an array of textures to be deleted.
+    
+      n: Specifies the number of textures to be deleted.
+      
+      *textures: Specifies an array of textures to be deleted.
+
+gl-fog-i ( pname param -- )
+
+    Specify fog parameters.
+    
+    Parameters <pname> and <param> are integer values.
+
+      pname: Specifies a single-valued fog parameter. 
+          GL_FOG_MODE, GL_FOG_DENSITY, GL_FOG_START, GL_FOG_END, and
+          GL_FOG_INDEX are accepted.
+
+      param: Specifies the value that <pname> will be set to.
+
+gl-fog-fv ( pname *params -- )
+
+    Specify fog parameters.
+
+    Parameter <pname> is an integer value; parameter <*params> is a
+    32-bit pointer to an array of 32-bit floating point values.
+        
+      pname: Specifies a fog parameter. GL_FOG_MODE, GL_FOG_DENSITY,
+          GL_FOG_START, GL_FOG_END, GL_FOG_INDEX, and GL_FOG_COLOR
+          are accepted.
+
+      *params: Specifies the value or values to be assigned to pname.
+          GL_FOG_COLOR requires an array of four values. All other
+          parameters accept an array containing only a single value.
+
+      (As the floating point values pointed to by <*params> are to be
+      passed by address, they must already be in the C/C++ standard
+      32-bit format, not the normal gforth 64-bit float values.)
+      
+gl-fog-f ( pname param -- )
+
+    Specify fog parameters.
+    
+    Parameter <pname> is integer value; parameter <param> is a 32-bit
+    floating point value.
+
+      pname: Specifies a single-valued fog parameter. 
+          GL_FOG_MODE, GL_FOG_DENSITY, GL_FOG_START, GL_FOG_END, and
+          GL_FOG_INDEX are accepted.
+
+      param: Specifies the value that <pname> will be set to.
+
+    (In gforth, as this is passed by value, there is no conversion
+    necessary to make this value into a 32-bit float from the normal
+    gforth 64-bit floating point value.)
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+three files to that directory:
+
+        opengl-lesson16.fs      - Code Addendum 1
+        opengllib-1.16.fs       - Code Addendum 2
+        mini-opengl-1.16.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson also uses an image file which you can retrieve from the
+NeHe Lesson 16 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=16
+
+or from the opengl-lesson16.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson16.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.16.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson16.fs
+        lesson16
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson16.fs
+        lesson16
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 17 - 2D texture mapped fonts
+
+----------------------------------------------------[End Lesson16]---
+

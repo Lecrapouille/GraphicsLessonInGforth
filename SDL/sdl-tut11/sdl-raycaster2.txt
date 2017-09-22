@@ -1,0 +1,222 @@
+---[ gforth: SDL/OpenGL Graphics Part XI ]------------[05/09/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut11.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+In RayCasting Part 1, we have the a basic, fairly fast 3D Engine (for
+being coded in high level Forth), using a flat textured method for
+the display of the walls.
+
+The next step is to change the walls so that they actually look more
+interesting, and we will do this by generating a series of textures
+that will correspond to the numbers that we will place in a new 2D
+map of the world we will be creating.
+
+While the actual conversion to using textured patterns for the walls
+is fairly straightforward, we will be incurring a pretty heavy fine
+in terms of the speed of the display.  The reason for this is that,
+just like when we went from drawing a single color line to the much
+better looking Wu lines, we will have to plot each pixel of the walls
+individually, calculating the pixel color each time.
+
+Since I am not coding any machine language routines, the change in
+the display method will be very obvious.  My machine is giving me the
+following frames per second (fps) rates:
+
+     320x200x32 - @ 25 fps
+     640x480x32 - @ 8 fps
+    1024x768x32 - @ 2 fps
+
+Part of the reason the code is running so slowly - especially in the
+640x480 and 1024x768 modes - is from using GetPixel to get the pixel
+colors from the texture surface.
+
+The following code from RayCasting Part 1 is what we will replace
+with the code to display a textured surface:
+
+    \ choose wall color
+      r.MapX F@ F>S r.MapY F@ F>S Choose-Wall-Color to i.color
+
+    \ give x and y sides different brightness
+      i.side 1 = if
+        i.color 2/ to i.color
+      then
+
+    \ draw the pixels of the stripe as a vertical line
+      screen-surface                                    \ dst surface
+      i                                             \ ray being drawn
+      r.DrawStart F@ F>S                      \ top y of line to draw
+      r.DrawEnd F@ F>S                     \ bottom y of line to draw
+      i.color                                    \ color value to use
+      VertLine                                  \ draw the line slice
+
+---[ Raycasting Textures ]-------------------------------------------
+
+We will be using eight separate textures in this demo, each of which
+is in a 64x64x4 matrix, totalling 16,384 bytes per texture (and eight
+of them mean an allocation of 131,072 bytes total).  Rather than try
+to allocate them at the top of the dictionary, we will create a new
+SDL surface and create the textures there.
+
+We could as easily use images, such as the Wolf3D pictures, for the
+walls, as it is a simple matter of getting the data into the correct
+format for accessing, as we have done with the generated textures we
+will be using now.
+
+Program flow in the main <raycast> function is the same as in the
+flat textured version until we come to the color selection portion of
+the code, where we start our texture calculations as follows.
+
+First, we have to determine where in the wall our raycasting hit:
+
+      \ calculate value of r.WallX - where exactly the wall was hit
+      i.side 1 = if
+        r.RayPX F@ r.MapY F@ r.RayPY F@ F- 1e0 r.StepY F@ F-
+        2e0 F/ F+ r.RayDY F@ F/ r.RayDX F@ F* F+
+      else
+        r.RayPY F@ r.MapX F@ r.RayPX F@ F- 1e0 r.StepX F@ F-
+        2e0 F/ F+ r.RayDX F@ F/ r.RayDY F@ F* F+
+      then
+      FDUP floor F- r.WallX F!
+
+and then map it to where in the texture we will use the ray is at:
+
+      \ x coordinate on the texture
+      r.WallX F@ TexWidth S>F F* F>S to i.texX
+
+first the X coordinate in the texture:
+
+      i.side 0 = r.RayDX F@ F0> AND if
+        TexWidth i.texX - 1- to i.texX
+      then
+
+and then the Y coordinate:
+
+      i.side 1 = r.RayDY F@ F0< AND if
+        TexWidth i.texX - 1- to i.texX
+      then
+
+What we now do is to scale the texture to fit on the calculated size
+of the wall at the distance we have determined the wall to be from
+our current position.  The closer to the wall we are, the larger the
+wall (and the texture) will be on the screen:
+
+      r.DrawEnd F@ F>S r.DrawStart F@ F>S do
+        i 8 LSHIFT window-screenh 7 LSHIFT - S>F
+        r.LineHeight F@ 128e0 F* F+
+        TexHeight S>F F* r.LineHeight F@ F/ F>S 8 RSHIFT
+        to i.texY
+
+Get the wall number from the map so we know which texture to use:
+
+        \ Select texture based on wall # in the map
+        texture-surface
+        r.MapX F@ F>S r.MapY F@ F>S worldmap-ndx C@ 1-
+
+Get the pixel from the texture so we have the color value to plot:
+
+        64 * i.texX + i.texY GetPixel to i.color
+ 
+We want to "shade" the color if the wall is determined to be a y-side
+so we divide the color value by two.  Since this just shifts all of
+the bits to the right one position, we need to clear bit 7 of each
+of the three bytes in the color value, which we do by masking the
+shifted value with $7F7F7F (%011111110111111101111111 in binary):
+
+        \ make the color darker for y-sides
+        \ r/g/b divided thru two with a SHIFT and an AND
+        \ (The AND ensures bit 7 of each byte is cleared)
+        i.side 1 = if i.color 1 RSHIFT $7F7F7F AND to i.color then
+
+And finally plot the pixel to the destination surface.  I have put in
+two versions of PutPixel code - the first uses the sdl-fillrect code
+to fast plot a pixel to the surface, and the second uses the PutPixel
+code in the sdllib.fs library, which is a bit slower, being in high
+level Forth.  The use of sdl-fillrect is the only speed optimization
+that has been done in this code.
+
+        1 if
+          j offset% sdl-offset-x w!
+          i offset% sdl-offset-y w!
+          1 offset% sdl-offset-w w!
+          1 offset% sdl-offset-h w!
+          screen-surface offset% i.color sdl-fillrect drop
+        else
+          screen-surface j i i.color PutPixel
+        then
+      loop
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+There are a number of problems that exist in this code, but I did not
+plan to make this a usable plug-into-your-own-program 3D Engine, and
+so have not taken the time to correct the problems.
+
+If, when running the demo, it bombs out with something like:
+
+        :26: Invalid memory address
+        >>>raycast<<<
+        Backtrace:
+        $A092F8 @ 
+        $0 
+        $1DF 
+        $0 
+        $280 
+
+just click in the terminal window and enter "closegraph" to shut down
+the display window.
+
+In actual use I would use the OpenGL functions to perform the texture
+mapping, as is done in the 3DDemo code that I referenced in my first
+gforth/SDL column, coded by Victor M. <samsaga2>, which can be found
+at:
+
+        http://platypus3d.googlecode.com/svn/trunk/
+
+---[Note]------------------------------------------------------------
+I would like to mention at this point that - with the use of the 
+libcc interface - we have the capability of adding C/C++ code to our
+gforth system that can be compiled and linked to our Forth program
+pretty much transparently.
+
+This give us the advantage of machine code speed without sacrificing
+portability, since the C/C++ code that compiles should not be system
+specific - and should be able to compile on any of the systems that
+gforth and SDL are capable of being run on.
+
+This assumes that your C compiler can be called via the libcc code.
+--------------------------------------------------------[End Note]---
+
+---[ Wrapping Up ]---------------------------------------------------
+
+The Code Addendum for this column requires all of the Addendums that
+were posted for RayCasting 1 (gforth: SDL/OpenGL Graphics Part X), so
+simply place it into the same directory and load it from there.
+
+Also, the <wolftextures.png> file that is referenced in the Code
+Addendum will be included in the sdl-tut11.zip file.
+
+The last bit of code here is the function showtextures, which will
+open a window and display all of the textures for ten seconds, to let
+you see them all at once (although that is also done when you first
+run <raycast>, as a wall with all of the textures is the first thing
+that you see).
+
+Until later.
+------------------------------------------------[End RayCasting-2]---

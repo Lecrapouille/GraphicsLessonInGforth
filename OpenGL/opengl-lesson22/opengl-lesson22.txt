@@ -1,0 +1,201 @@
+---[ gforth: OpenGL Graphics Lesson 22 ]--------------[08/06/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson22.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 22 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-active-texture-ARB ( texture -- )
+
+    Select active texture unit
+
+    Parameter <texture> is an integer value.
+
+      texture: Specifies which texture unit to make active.
+          The number of texture units is implementation dependent,
+          but must be at least two. texture must be one of
+          GL_TEXTUREi_ARB, where 0 ≤ i < GL_MAX_TEXTURE_UNITS_ARB,
+          which is an implementation-dependent value.
+
+          The intial value is GL_TEXTURE0_ARB
+
+gl-get-float-v ( pname *param -- )
+gl-get-integer-v ( pname *param -- )
+
+    Return the value or values of a selected parameter.
+    
+    Parameter <pname> is an integer value.
+
+    For gl-get-float-v parameter <*param> is a 32-bit pointer to a
+    floating point variable address to place the returned value at.
+
+    For gl-get-integer-v parameter <*param> is a 32-bit pointer to an
+    integer variable address to place the returned value at.
+
+gl-get-string ( name -- *string )
+
+    Return a string describing the current GL connection.
+
+    Parameter <name> is an integer value.
+    
+      name: Specifies a symbolic constant, one of:
+
+          GL_VENDOR: Returns the company responsible for this GL
+          implementation. This name does not change from release to
+          release.
+
+          GL_RENDERER: Returns the name of the renderer. This name is
+          typically specific to a particular configuration of a
+          hardware platform. It does not change from release to
+          release.
+
+          GL_VERSION: Returns a version or release number.
+
+          GL_EXTENSIONS: Returns a space-separated list of supported
+          extensions to GL.
+    					    
+gl-multi-tex-coord-2f-ARB ( target s t -- )
+
+    Set the current texture coordinates.
+    
+    Parameter <target> is an integer value; parameters <s> and <t>
+    are 32-bit floating point values.
+    
+      target: Specifies texture unit whose coordinates should be
+          modified. The number of texture units is implementation
+          dependent, but must be at least two. Must be one of
+          GL_TEXTURE i _ARB where 0 ≤  i < GL_MAX_TEXTURE_UNITS_ARB,
+          which is an implementation-dependent value.
+
+      s, t: 32-bit floating point texture coordinate values.
+
+gl-pixel-transfer-f ( pname param -- )
+
+    Set pixel transfer modes.
+    
+    Parameter <pname> is an integer value; parameter <param> is a
+    32-bit floating point value.
+    
+      pname: Specifies the symbolic name of the pixel transfer
+          parameter to be set. Must be one of the following:
+          GL_MAP_COLOR, GL_MAP_STENCIL, GL_INDEX_SHIFT,
+          GL_INDEX_OFFSET, GL_RED_SCALE, GL_RED_BIAS, GL_GREEN_SCALE,
+          GL_GREEN_BIAS, GL_BLUE_SCALE, GL_BLUE_BIAS, GL_ALPHA_SCALE,
+          GL_ALPHA_BIAS, GL_DEPTH_SCALE, or GL_DEPTH_BIAS.
+
+          Additionally, if the GL_ARB_imaging extension is supported,
+          the following symbolic names are accepted:
+          GL_POST_COLOR_MATRIX_RED_SCALE,
+          GL_POST_COLOR_MATRIX_GREEN_SCALE,
+          GL_POST_COLOR_MATRIX_BLUE_SCALE,
+          GL_POST_COLOR_MATRIX_ALPHA_SCALE,
+          GL_POST_COLOR_MATRIX_RED_BIAS,
+          GL_POST_COLOR_MATRIX_GREEN_BIAS,
+          GL_POST_COLOR_MATRIX_BLUE_BIAS,
+          GL_POST_COLOR_MATRIX_ALPHA_BIAS,
+          GL_POST_CONVOLUTION_RED_SCALE,
+          GL_POST_CONVOLUTION_GREEN_SCALE,
+          GL_POST_CONVOLUTION_BLUE_SCALE,
+          GL_POST_CONVOLUTION_ALPHA_SCALE,
+          GL_POST_CONVOLUTION_RED_BIAS,
+          GL_POST_CONVOLUTION_GREEN_BIAS,
+          GL_POST_CONVOLUTION_BLUE_BIAS,
+          and GL_POST_CONVOLUTION_ALPHA_BIAS
+
+      param: Specifies the value that <pname> is set to.
+
+gl-tex-env-f ( target pname param -- )
+
+    Set texture environment parameters.
+
+      target: Specifies a texture environment. Must be GL_TEXTURE_ENV    
+
+      pname: Specifies the symbolic name of a single-valued texture
+          environment parameter. Must be GL_TEXTURE_ENV_MODE.
+
+      param: Specifies a single symbolic constant, one of:
+          GL_MODULATE, GL_DECAL, GL_BLEND, or GL_REPLACE.
+
+          Note: since these constants are integer values, they must
+                be converted to floating point when declared with
+                this function (with S>F).
+                
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+four files to that directory:
+
+        opengl-lesson22.fs      - Code Addendum 1
+        opengllib-1.22.fs       - Code Addendum 2
+        mini-opengl-1.22.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson uses six image files which you can retrieve from the NeHe
+Lesson 22 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=22
+
+or from the opengl-lesson22.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson22.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.22.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson22.fs
+        lesson22
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson22.fs
+        lesson22
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 23 - Sphere mapping quadrics
+
+----------------------------------------------------[End Lesson22]---
+

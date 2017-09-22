@@ -1,0 +1,82 @@
+---[ gforth: OpenGL Graphics Lesson 04 ]--------------[07/07/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson04.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 04 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-rotate-f ( angle x y z -- )
+
+    Multiply the current matrix by a rotation matrix
+
+    Parameters <angle>, <x>, <y> and <z> are 32-bit floats.
+
+      angle:  Specifies the angle of rotation, in degrees.
+      x/y/z:  Specify the x, y, and z coordinates of a vector.
+
+    (In gforth, as these are passed by value, there is no conversion
+    necessary to make these values into 32-bit floats from the normal
+    gforth 64-bit floating point value.)
+
+---[ Installation ]--------------------------------------------------
+
+For the files received from the comp.lang.forth newsgroup, copy these
+files:
+
+        opengl-lesson04.fs      - Code Addendum 1
+        opengllib-1.04.fs       - Code Addendum 2
+        mini-opengl-1.04.fs     - Code Addendum 3
+
+to the same directory with the previous Lesson files.
+
+For the files from the opengl-lesson04.zip, extract them to wherever
+you wish to place them, or extract the above three files into the
+directory you have placed the previous Lesson files.
+
+From a terminal window, cd to your directory, and execute the LibUtil
+program:
+
+        ./libutil.sh -r
+
+to remove the previous mini_opengl_lib compilations (after you have
+compiled/run the previous Lessons, of course), then execute it again:
+
+        ./libutil.sh -i
+
+to install the libcc interface for this second Lesson.
+
+Then:
+        gforth <cr>
+        include opengl-lesson03.fs <cr>
+        lesson04 <cr>
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 5 - 3D shapes
+
+----------------------------------------------------[End Lesson04]---
+

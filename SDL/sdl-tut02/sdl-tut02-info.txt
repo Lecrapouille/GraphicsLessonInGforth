@@ -1,0 +1,16 @@
+=====================================================================
+          File: sdl-tut02.zip
+         Title: gforth: SDL/OpenGL Graphics Part II
+        Author: Timothy Trussell <tgtrussell@hotmail.com>
+          Date: 02/07/2010
+   Description: Displaying a Bitmapped Image
+=====================================================================
+                gforth: SDL/OpenGL Graphics Part II
+=====================================================================
+
+Tutorial on displaying a bitmapped image to the display window.
+
+=====================================================================
+Timothy Trussell <tgtrussell@hotmail.com>                  02/07/2010
+=====================================================================
+

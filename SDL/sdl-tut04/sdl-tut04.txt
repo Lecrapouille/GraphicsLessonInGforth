@@ -1,0 +1,527 @@
+---[ gforth: SDL/OpenGL Graphics Part IV ]------------[02/22/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column, as with the rest of this series of columns, will be 
+posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut04.zip
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where Are We ]--------------------------------------------------
+
+In the last column we went through the coding for a multiple color
+depth version of PutPixel.  Here it is again, for reference during
+the discussion of this column:
+
+  : PutPixel { *dst _x _y _pixel -- }
+    \ Lock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-locksurface drop
+    then
+    \ Calculate the target address of the pixel
+    *dst sdl-surface-pixels @     \ *pixels            32-bit pointer
+    *dst sdl-surface-pitch sw@    \ *pixels swidth       16-bit value
+    _y * +                        \ *pixels[swidth*y]
+    *dst sdl-surface-format @     \ *pixels[swidth*y] *format
+    sdl-pixelformat-bytesperpixel \ *pixels[swidth*y] *format->bytepp
+    C@                            \ *pixels[swidth*y] bytepp
+    dup >R                        \ *pixels[swidth*y] bytepp
+    _x * +                        \ *pixels[ofs]
+    R>                            \ *pixels[ofs] bytepp
+    case                          \ *pixels[ofs]
+      1 of _pixel swap C! endof
+      2 of _pixel swap w! endof
+      3 of SDL_BYTEORDER SDL_BIG_ENDIAN = if
+             _pixel 16 RSHIFT over C! 1+
+             _pixel 8 RSHIFT over C! 1+
+             _pixel swap C!
+           else
+             _pixel over C! 1+
+             _pixel 8 RSHIFT over C! 1+
+             _pixel 16 RSHIFT swap C!
+           then
+        endof
+      4 of _pixel swap ! endof
+    endcase
+    \ Now unlock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-unlocksurface
+    then
+  ;
+
+Now, the main reason to code a graphic primitive like PutPixel is
+that the SDL system does not have some of the basic primitives as a
+part of its basic tool set.
+
+So, we will go through the creation of six more primitives in this
+column, using the basic PutPixel function as a building block.
+
+---[ Graphics Primitives ]-------------------------------------------
+
+The seven basic graphics primitives that I will be discussing are:
+
+        PutPixel
+        GetPixel
+        Line (Bresenham)
+        VLine
+        HLine
+        PutImage
+        PutSprite
+
+---[ GetPixel ]------------------------------------------------------
+
+Since we already went through PutPixel last time, we will move on to
+the next in this list - GetPixel.
+
+Functionally, Getpixel is almost identical to the PutPixel function
+as you can see here:
+
+  : GetPixel { *dst _x _y -- pixel }
+    \ Lock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-locksurface drop
+    then
+    \ Calculate the target address of the pixel
+    *dst sdl-surface-pixels @     \ *pixels            32-bit pointer
+    *dst sdl-surface-pitch sw@    \ *pixels swidth       16-bit value
+    _y * +                        \ *pixels[swidth*y]
+    *dst sdl-surface-format @     \ *pixels[swidth*y] *format
+    sdl-pixelformat-bytesperpixel \ *pixels[swidth*y] *format->bytepp
+    C@                            \ *pixels[swidth*y] bytepp
+    dup >R                        \ *pixels[swidth*y] bytepp
+    _x * +                        \ *pixels[ofs]
+    R>                            \ *pixels[ofs] bytepp
+    case                          \ *pixels[ofs]
+      1 of C@ endof                             <--
+      2 of sw@ endof                            <--
+      3 of SDL_BYTEORDER SDL_BIG_ENDIAN = if
+             dup C@ 16 LSHIFT >R 1+             <--
+             dup C@ 8 LSHIFT R> OR >R 1+        <--
+             C@ R> OR                           <--
+           else
+             dup C@ >R 1+                       <--
+             dup C@  8 LSHIFT R> OR >R 1+       <--
+             C@ 16 RSHIFT R> OR                 <--
+           then
+        endof
+      4 of @ endof                              <--
+    endcase
+    \ Now unlock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-unlocksurface
+    then
+  ;
+
+The changes occur in the CASE structure, where we have the following 
+conditions:
+
+        case 1 loads an 8-bit value (C@)
+        case 2 loads a 16-bit value (sw@)
+        case 4 loads a 32-bit value (@)
+
+and we still have to process the 24-bit mode manually, combining the
+three 8-bit values into a single 24-bit value.
+
+The pixel value is then returned on the data stack.
+
+---[ Line ]----------------------------------------------------------
+
+Our next primitive is the Line function, for which we will use the
+Bresenham Algorithm:
+
+  0 value [[d]
+  0 value [[x]
+  0 value [[y]
+  0 value [[ax]
+  0 value [[ay]
+  0 value [[sx]
+  0 value [[sy]
+  0 value [[dx]
+  0 value [[dy]
+
+  : Line { *dst _x1 _y1 _x2 _y2 _pixel -- }
+    _x2 _x1 - to [[dx]
+    [[dx] abs 2* to [[ax]
+    [[dx] 0< if -1 else 1 then to [[sx]
+
+    _y2 _y1 - to [[dy]
+    [[dy] abs 2* to [[ay]
+    [[dy] 0< if -1 else 1 then to [[sy]
+
+    _x1 to [[x]
+    _y1 to [[y]
+
+    [[ax] [[ay] > if
+      [[ay] [[ax] 2/ - to [[d]
+      begin
+        [[x] _x2 = 0=                              \ while [[x] != x2
+      while
+        *dst [[x] [[y] _pixel PutPixel
+        [[d] 0 >= if
+          [[sy] [[y] + to [[y]
+          [[ax] negate [[d] + to [[d]
+        then
+        [[sx] [[x] + to [[x]
+        [[ay] [[d] + to [[d]
+      repeat
+    else                                                \ ax not > ay
+      [[ax] [[ay] 2/ - to [[d]
+      begin
+        [[y] _y2 = 0=                              \ while [[y] != y2
+      while
+        *dst [[x] [[y] _pixel PutPixel
+        [[d] 0 >= if
+          [[sx] [[x] + to [[x]
+        [[ay] negate [[d] + to [[d]
+        then
+        [[sy] [[y] + to [[y]
+        [[ax] [[d] + to [[d]
+      repeat
+    then
+  ;
+
+Since the Bresenham Line Algorithm, written in 1962 and published in
+1965, has been very thoroughly explained in many places, I will not
+attempt to reinvent the wheel by describing the functions of the 
+algorithm.  For our purposes, it works, and is a very efficient 
+method of plotting pixels to the display surface.
+
+For those who really want to know more, I would suggest referencing
+the following site:
+
+    http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+
+which gives an overview of the functioning of the Algorithm.
+
+---[ VLine/HLine ]---------------------------------------------------
+
+There are two special line types - Vertical and Horizontal - where
+using the Bresenham Algorithm is actually slower than using a basic
+DO..LOOP construct to plot the pixels.
+
+Here are my original codings of these two functions:
+
+  : VLine { *dst _x _y1 _y2 pixel -- }
+    _y2 _y1 - 0 do
+      *dst _x _y1 i + pixel PutPixel
+    loop
+  ;
+
+and
+
+  : HLine { *dst _x1 _x2 _y pixel -- }
+    _x2 _x1 - 0 do
+      *dst _x1 i + _y pixel PutPixel
+    loop
+  ;
+
+VLine draws a vertical line from _y1 at the top to _y2 at the bottom
+at the horizontal x coordinate position.
+
+HLine draws a horizontal line from _x1 on the left to x2 on the right
+at the vertical y coordinate position.
+
+Both of these work quite well.  But, there is the matter of the large
+amount of overhead that each of the loops incur during execution.  If
+you look at the code for PutPixel, you will see that by putting the
+call to PutPixel in this kind of loop that the lock/unlock checks and
+calls are made for each pixel, and the address calculation has to be
+be made - again for each pixel.
+
+This runs contrary to the idea of coding special cases for the VLine
+and HLine functions to make them faster than using Line and, as 
+written, it would probably be easier to simply use the Line call to 
+draw these instead.
+
+But - there is a way to code these faster, removing the bottleneck
+areas.
+
+The improved VLine function is coded as:
+
+  0 value %vh-bpp
+
+  : VLine { *dst _x _y1 _y2 _pixel -- }
+    \ Lock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-locksurface drop
+    then
+    \ Calculate the target address of the pixel
+    *dst sdl-surface-pixels @     \ *pixels            32-bit pointer
+    *dst sdl-surface-pitch sw@    \ *pixels swidth       16-bit value
+    _y1 * +                       \ *pixels[swidth*y]
+    *dst sdl-surface-format @     \ *pixels[swidth*y] *format
+    sdl-pixelformat-bytesperpixel \ *pixels[swidth*y] *format->bytepp
+    C@                            \ *pixels[swidth*y] bytepp
+    dup to %vh-bpp                \ *pixels[swidth*y] bytepp
+    _x * +                        \ *pixels[ofs]
+    _y2 _y1 do                    \ *pixels[ofs]
+      dup                         \ *ofs *ofs
+      _pixel                      \ *ofs *ofs pixel
+      %vh-bpp                     \ *ofs *ofs pixel bytepp
+      <PlotPixel>                 \ *ofs
+      *dst sdl-surface-pitch sw@ + \ *ofs+<pitch>    inc to next line
+    loop
+    drop
+    \ Now unlock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-unlocksurface
+    then
+  ;
+
+and the improved HLine as:
+
+  : HLine { *dst _x1 _x2 _y pixel -- }
+    \ Lock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-locksurface drop
+    then
+    \ Calculate the target address of the pixel
+    *dst sdl-surface-pixels @     \ *pixels            32-bit pointer
+    *dst sdl-surface-pitch sw@    \ *pixels swidth       16-bit value
+    _y * +                        \ *pixels[swidth*y]
+    *dst sdl-surface-format @     \ *pixels[swidth*y] *format
+    sdl-pixelformat-bytesperpixel \ *pixels[swidth*y] *format->bytepp
+    C@                            \ *pixels[swidth*y] bytepp
+    dup to %vh-bpp                \ *pixels[swidth*y] bytepp
+    _x1 * +                       \ *pixels[ofs]
+    _x2 _x1 do                    \ *pixels[ofs]
+      dup                         \ *ofs *ofs
+      _pixel                      \ *ofs *ofs pixel
+      %vh-bpp                     \ *ofs *ofs pixel bytepp
+      <PlotPixel>                 \ *ofs
+      %vh-bpp +                   \ *ofs+<pitch>    inc to next pixel
+    loop
+    drop
+    \ Now unlock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-unlocksurface
+    then
+  ;
+
+Both of these call a modified version of the plot section of the
+PutPixel function:
+
+  : <PlotPixel> { *ofs _pixel _bytepp -- }
+    _bytepp case
+      1 of _pixel *ofs C! endof
+      2 of _pixel *ofs w! endof
+      3 of SDL_BYTEORDER SDL_BIG_ENDIAN = if
+             _pixel 16 RSHIFT *ofs C!
+             _pixel 8 RSHIFT *ofs 1+ C!
+             _pixel *ofs 2+ C!
+           else
+             _pixel *ofs C!
+             _pixel 8 RSHIFT *ofs 1+ C!
+             _pixel 16 RSHIFT *ofs 2+ C!
+           then
+        endof
+      4 of _pixel *ofs ! endof
+    endcase
+  ;
+
+---[ Breakdown of VLine/HLine ]--------------------------------------
+
+We start off both functions with the sdl-mustlock check, and lock the
+surface if it is required.
+
+The next section is the address calculation of the first pixel in the
+line to be drawn:
+
+    \ Calculate the target address of the pixel
+    *dst sdl-surface-pixels @     \ *pixels            32-bit pointer
+    *dst sdl-surface-pitch sw@    \ *pixels swidth       16-bit value
+    _y1 * +                       \ *pixels[swidth*y]
+    *dst sdl-surface-format @     \ *pixels[swidth*y] *format
+    sdl-pixelformat-bytesperpixel \ *pixels[swidth*y] *format->bytepp
+    C@                            \ *pixels[swidth*y] bytepp
+    dup to %vh-bpp                \ *pixels[swidth*y] bytepp
+
+followed by adding the scaled x coordinate to give the actual offset:
+
+For VLine -
+
+    _x * +                        \ *pixels[ofs]
+
+For HLine -
+
+    _x1 * +                       \ *pixels[ofs]
+
+where the x coordinate is multiplied by the bytes-per-pixel value we
+retrieved from the surface struct.
+
+The next section is the DO..LOOP to plot the pixels.
+
+For VLine, we go from the y1 coordinate to the y2 coordinate
+
+    _y2 _y1 do                    \ *pixels[ofs]
+      dup                         \ *ofs *ofs
+      _pixel                      \ *ofs *ofs pixel
+      %vh-bpp                     \ *ofs *ofs pixel bytepp
+      <PlotPixel>                 \ *ofs
+      *dst sdl-surface-pitch sw@ + \ *ofs+<pitch>    inc to next line
+    loop
+    drop
+
+and set up the call to <PlotPixel>.  The next line adds the value of
+the screen width <pitch> field of the surface struct to the offset
+value, moving us down one line for the next pixel location in the
+line being drawn.
+
+For HLine, we go from the x1 coordinate to the x2 coordinate:
+
+    _x2 _x1 do                    \ *pixels[ofs]
+      dup                         \ *ofs *ofs
+      _pixel                      \ *ofs *ofs pixel
+      %vh-bpp                     \ *ofs *ofs pixel bytepp
+      <PlotPixel>                 \ *ofs
+      %vh-bpp +                   \ *ofs+<pitch>    inc to next pixel
+    loop
+    drop
+
+where we again set up the call to <PlotPixel>.  The next line adds
+the bytes-per-pixel value for the surface to the offset, moving the
+pointer to the next pixel position in the line being drawn.
+
+After the loops have finished, we drop the offset from the stack, and
+check/unlock the surface before exitting.
+
+We have now pared down these functions to a single lock check, a
+single pixel calculation, and a single unlock check.  The rest of the
+time is spent in a fast pixel plotting loop, where the next pixel
+address is calculated by a simple addition to a base offset pointer.
+
+---[ PutPixel Revisited ]--------------------------------------------
+
+With the above definitions of VLine and HLine, and specifically the
+use of a special case of the pixel plot function, it became obvious
+that the PutPixel function could also use the <PlotPixel> function.
+
+The revised PutPixel is as follows:
+
+  : PutPixel { *dst _x _y _pixel -- }
+    \ Lock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-locksurface drop
+    then
+    \ Calculate the target address of the pixel
+    *dst sdl-surface-pixels @     \ *pixels            32-bit pointer
+    *dst sdl-surface-pitch sw@    \ *pixels swidth       16-bit value
+    _y * +                        \ *pixels[swidth*y]
+    *dst sdl-surface-format @     \ *pixels[swidth*y] *format
+    sdl-pixelformat-bytesperpixel \ *pixels[swidth*y] *format->bytepp
+    C@                            \ *pixels[swidth*y] bytepp
+    dup >R                        \ *pixels[swidth*y] bytepp
+    _x * +                        \ *pixels[ofs]
+    _pixel                        \ *pixels[ofs] pixel
+    R>                            \ *pixels[ofs] pixel bytepp
+    <PlotPixel>                   \ *ofs
+    \ Now unlock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-unlocksurface
+    then
+  ;
+
+---[ PutImage/PutSprite ]--------------------------------------------
+
+The final two functions (for the moment, anyway) draw sprites to the
+destination surface.
+
+PutImage will draw all of the pixels of the source image, including
+the zeroes.
+
+PutSprite will draw all of the non-zero pixels, letting any of the
+background pixels be visible in the 'holes' that are left in the
+sprite image.  Since we are not plotting the zero pixels, we skip
+the pixel location.
+
+The PutImage and PutSprite functions are simply wrappers, that add
+a transparency flag (tflag) parameter to the stack before sending all
+the parameters to the function <Draw-Image>, which actually draws the
+image to the destination surface.
+
+  0 value %di-ofs
+
+  : <Draw-Image> { *dst _x _y _w _h *src tflag -- }
+    *src to %di-ofs                         \ initialize data pointer
+    _h 0 do
+      _w 0 do
+        tflag if                             \ transparency flag set?
+          %di-ofs C@  0>          \ 0/1         yes - do not plot 0's
+        else
+          1                       \ 1            no - draw everything
+        then
+        if                        \                  plot if pixel!=0
+          *dst _x i + _y j +      \ *dst x+i y+j       target x/y set
+          %di-ofs C@              \ *dst x+i y+j pixel
+          PutPixel                \ --
+        then
+        %di-ofs 1+ to %di-ofs                \ increment data pointer
+      loop
+    loop
+  ;
+
+  : PutImage   ( *dst _x _y _w _h *src -- ) 0 <Draw-Image> ;
+  : PutSprite  ( *dst _x _y _w _h *src -- ) 1 <Draw-Image> ;
+
+The biggest optimization that I have made in this function is when I
+realized that I could treat the source image as a data stream.  In
+my previous PutSprite code, I performed an x/y array calculation to
+retrieve each pixel to be processed from the source data.  Since we
+already know the height and width parameters of the image, all we
+need to do is set a pointer to the start of the data at the beginning
+of the function.  As each pixel of the image is processed, this 
+pointer is incremented with a simple '1+' addition.
+
+A further optimization of this function, to increase the display
+speed, would be what was done for the VLine/HLine functions by
+making the lock/unlock calls only once in the routine, replacing the 
+call to PutPixel with a call to <PlotPixel>, and making it so only 
+the first address calculation is performed.
+
+I am not doing so at the moment, because I am only working with 8-bit
+sprite/image versions. The code will have to be redesigned to handle
+sprite images with the higher color depths.
+
+---[ Wrapping It Up ]------------------------------------------------
+
+These graphics primitives:
+
+        PutPixel
+        GetPixel
+        Line
+        VLine
+        HLine
+        PutImage
+        PutSprite
+
+form the basis of a small gforth SDL library.  Combined with the
+
+        InitGraph
+        CloseGraph
+        Error-End
+        Terminate-String
+
+functions used in the first column of this series, they give the
+programmer the basics for coding graphics programs.
+
+The Code Addendum I have included is present simply for completeness,
+as it is simply an extract of these routines from the actual library
+that I have been coding for this sequence of the columns.  Missing is
+the little things like the additional SDL interface definitions that
+allow the SDL structures to be accessed correctly.
+
+We will possibly get to the full library in the next column, unless I
+get distracted....
+
+Cheetos - I need more Cheetos.
+------------------------------------------[ End of sdl-tut04.txt ]---
+

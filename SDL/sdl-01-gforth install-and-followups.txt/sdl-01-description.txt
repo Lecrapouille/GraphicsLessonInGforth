@@ -1,0 +1,26 @@
+=====================================================================
+          File: sdl-01-gforth install-and-followups.txt
+         Title: gforth: SDL/OpenGL Graphics Part I
+        Author: Timothy Trussell <tgtrussell@hotmail.com>
+          Date: 02/05/2010
+   Description: Installation tutorial for SDL/OpenGL under the Ubuntu
+              : Linux operating system
+=====================================================================
+                gforth: SDL/OpenGL Graphics Part I
+=====================================================================
+
+Tutorial on installing Ubuntu Linux, SDL, OpenGL and gforth, to give
+the programming tools necessary to create SDL/OpenGL graphics programs
+under gforth.
+
+The 'prequel' to a series of tutorials on programming in SDL/OpenGL.
+
+Note-
+
+I have included the responses from the comp.lang.forth newsgroup that
+were posted prior to my placing this file on the Taygeta site.
+
+=====================================================================
+Timothy Trussell <tgtrussell@hotmail.com>                  02/05/2010
+=====================================================================
+

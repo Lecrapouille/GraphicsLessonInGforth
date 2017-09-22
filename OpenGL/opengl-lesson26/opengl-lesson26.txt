@@ -1,0 +1,229 @@
+---[ gforth: OpenGL Graphics Lesson 26 ]--------------[05/27/2011]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson26.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 26 at
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=26
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-clear-stencil ( s -- )
+
+    Specify the clear value for the stencil buffer
+
+    Parameter <s> is an integer value.
+
+      s: Specifies the index used when the stencil buffer is cleared.
+         The initial value is 0
+
+gl-clip-plane ( plane *equation -- )
+
+    Specify a plane against which all geometry is clipped
+
+    Parameter <plane> is an integer value; <*equation> is a pointer
+        to an array of floating point doubles (64-bit floats)
+
+      plane: Specifies which clipping plane is being positioned.
+          Symbolic names of the form GL_CLIP_PLANE i, where i is an
+          integer between 0 and GL_MAX_CLIP_PLANES - 1, are accepted
+
+      equation: Specifies the address of an array of four double
+          precision floating-point values. These values are
+          interpreted as a plane equation.
+
+gl-color-mask ( red green blue alpha -- )
+
+    Enable and disable writing of frame buffer color components
+
+    Parameters <red>, <green>, <blue> and <alpha> are boolean values.
+    
+      RGBA: Specify whether red, green, blue, and alpha can or cannot
+          be written into the frame buffer. The initial values are
+          all GL_TRUE, indicating that the color components can be
+          written.
+      
+gl-flush ( -- )
+
+    Force execution of GL commands in finite time
+
+    No parameters passed.
+    
+    Different GL implementations buffer commands in several different
+    locations, including network buffers and the graphics accelerator
+    itself. glFlush empties all of these buffers, causing all issued
+    commands to be executed as quickly as they are accepted by the
+    actual rendering engine. Though this execution may not be
+    completed in any particular time period, it does complete in
+    finite time.
+
+    Because any GL program might be executed over a network, or on an
+    accelerator that buffers commands, all programs should call
+    glFlush whenever they count on having all of their previously
+    issued commands completed. For example, call glFlush before
+    waiting for user input that depends on the generated image.
+                
+gl-stencil-func ( func ref mask -- )
+
+    Set function and reference value for stencil testing
+
+    Parameters <func>, <ref> and <mask> are integer values.
+
+      func: Specifies the test function. Eight tokens are valid:
+          GL_NEVER, GL_LESS, GL_LEQUAL, GL_GREATER,
+          GL_GEQUAL, GL_EQUAL, GL_NOTEQUAL, and
+          GL_ALWAYS. The initial value is GL_ALWAYS.
+
+      ref: Specifies the reference value for the stencil test. ref is
+         clamped to the range [0,2^n-1], where n is the number of
+         bitplanes in the stencil buffer. The initial value is 0.
+                                        
+
+      mask: Specifies a mask that is ANDed with both the reference
+          value and the stored stencil value when the test is done.
+          The initial value is all 1's.
+
+gl-stencil-mask ( mask -- )
+
+    Control the writing of individual bits in the stencil planes
+    
+    Parameter <mask> is an integer value.
+    
+      mask: Specifies a bit mask to enable and disable writing of
+          individual bits in the stencil planes.
+          Initially, the mask is all 1's.
+
+gl-stencil-op ( fail zfail zpass -- )
+
+    Set stencil test actions
+
+    Parameters <fail>, <zfail> and <zpass> are integer values.
+
+      fail: Specifies the action to take when the stencil test fails.
+          Six symbolic constants are accepted:
+          GL_KEEP, GL_ZERO, GL_REPLACE,
+          GL_INCR, GL_DECR, and GL_INVERT.
+          The initial value is GL_KEEP.
+
+      zfail: Specifies the stencil action when the stencil test
+          passes, but the depth test fails. zfail accepts the same
+          symbolic constants as fail. The initial value is GL_KEEP.
+
+      zpass: Specifies the stencil action when both the stencil test
+          and the depth test pass, or when the stencil test passes
+          and either there is no depth buffer or depth testing is not
+          enabled. zpass accepts the same symbolic constants as fail.
+          The initial value is GL_KEEP.
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+For a full description of what the above functions are capable of
+doing, you will need to research the OpenGL documentation both on the
+Internet, and in a selection of books that cover OpenGL programming.
+
+Which books?  Go to amazon.com and search for OpenGL under books.
+
+"Beginning OpenGL Game Programming, Second Edition" by Luke Benstead
+is a good choice to start with, if you have no idea which to select.
+
+This is pretty much the case for all of the functions that have been
+implemented in the NeHe OpenGL Lessons.  As NeHe has said, these are
+not meant to specifically teach you how to implement OpenGL code, but
+serve more as an example of various aspects of available functions.
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+files to that directory:
+
+        opengl-lesson26.fs      - Code Addendum 1
+        opengllib-1.26.fs       - Code Addendum 2
+        mini-opengl-1.26.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.02.fs file from Lesson 24 as well
+as all of the usual constants definition files.
+
+This Lesson uses three data files which you can retrieve from the
+NeHe Lesson 26 page (use the Visual C++ .zip for these) at the above
+posted web address, or from the opengl-lesson26.zip file that will be
+posted to the Taygeta Forth Archives site listed at the start of this
+column.
+
+For the files from the opengl-lesson26.zip, extract them to wherever
+you wish to place them, or extract the above files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.26.fs:
+
+        1 =: UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson26.fs
+        lesson26
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 =: UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson26.fs
+        lesson26
+
+---[ Addition to the Base Code ]-------------------------------------
+
+Initialization of the Stencil Buffer
+
+In order to access the Stencil Buffer, it is necessary to set a pair
+of OpenGL attributes, which is done by the Init-Stenciling word in
+the Base Code listing (opengl-lesson26.fs).  These attributes have to
+be set *before* initializing the video via the sdl-set-video-mode
+function (in the Init-Video word).
+
+I will be leaving this function in the Base Code file for all future
+Lessons, though it will only be called if the code is utilizing the
+Stencil Buffer.
+
+---[ Errata ]--------------------------------------------------------
+
+Found an error in the sdlkeysym.fs file with the definition of the
+SDLK_z constant.  The correct value is [122], rather than the [121]
+that is present in (probably) all previous postings of this file.
+
+You have the option of replacing all previous versions with this one,
+or changing the entry yourself in your current file.
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 27 - Shadows
+
+----------------------------------------------------[End Lesson26]---

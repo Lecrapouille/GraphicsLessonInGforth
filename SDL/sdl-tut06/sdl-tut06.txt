@@ -1,0 +1,218 @@
+---[ gforth: SDL/OpenGL Graphics Part VI ]------------[02/28/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column, as with the rest of this series of columns, will be 
+posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut06.zip
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+We have now put together an SDL Graphics Primitives library, but as
+yet have not actually done anything with it, so we are overdue for
+some demo code.
+
+The SDL library (to this point) consists of the following functions:
+
+  : SDLLib-Version              ( -- )
+  : Error-End                   ( f addr n -- )
+  : Terminate-String            ( a n -- a )
+  : Set-Mode-Parms              ( mode -- )
+  : InitGraph                   ( mode a n -- )
+  : CloseGraph                  ( -- )
+  : <PlotPixel>                 { *ofs _pixel _bytepp -- }
+  : PutPixel                    { *dst _x _y _pixel -- }
+  : Line                        { *dst _x1 _y1 _x2 _y2 _pixel -- }
+  : VLine                       { *dst _x _y1 _y2 _pixel -- }
+  : HLine                       { *dst _x1 _x2 _y _pixel -- }
+  : <Draw-Image>                { *dst _x _y _w _h *src tflag -- }
+  : PutImage                    ( *dst _x _y _w _h *src -- )
+  : PutSprite                   ( *dst _x _y _w _h *src -- )
+  : Splash-Screen               ( -- )
+
+The library itself consists of the files:
+
+        sdllib.fs               - the SDL Primitives Library
+        sdl-1.0b.fs             - the SDL C Interface
+        sdlconstants.fs         - the SDL constants definitions
+
+which were posted as Code Addendums 1, 2 and 3 for Part V of this
+series of columns.
+
+I will be discussing the SDL-specific changes that are required to
+use the SDL functions with this demo code.
+
+---[ The VBoll/Animation Demo ]--------------------------------------
+
+This demo is coded to utilize multiple double buffers, which are
+drawn to, and then combined into a single display image.
+
+Rather than allocating each of the individual buffers from system
+memory, we will be using the SDL CreateRGBSurface call, which will
+create a new surface with a blank palette for us.
+
+For this demo, we will be creating a total of seven surfaces.  The
+main display surface - <screen-surface> - is created during the call
+to InitGraph, and will have a resolution of 1024x768x8.  Each of the
+six additional surfaces will all be created at 320x200x8.
+
+Each surface will have specific parts of the animations drawn to them
+and then the separate images will be combined to form a single image.
+
+The surfaces being used are:
+
+        hatch-surface           - hatched background
+        red-surface             - all red anim sprites
+        green-surface           - all green anim sprites
+        blue-surface            - all blue anim sprites
+        bolls-surface           - vector bolls display
+        combo-surface           - where everything is combined
+
+After being created with the <Get-Surface> function, the pixel areas
+of the surfaces are zeroed (with <Clear-Surface>), the Transparency
+settings are configured (with <Set-Transparency>), and all of the
+Palettes are set to be the same.
+
+When the separate surfaces are to be combined together to form one
+image, what has to be done is basically to treat each surface as one
+large sprite, where we transfer only the non-zero pixels to the
+destination surface.  To do this, we utilize the sdl-setcolorkey
+function, will allows us to specify a transparent color - in this
+case we are using color 0 (Black) as our transparent pixel color.
+
+The <hatch-surface>, however, is NOT being configured for this, as
+we want it to over-write the previous contents of the combo-surface,
+to save us the requirement of clearing the surface pixel area.  The
+<hatch-surface> is the first surface copied, and therefore it will
+eliminate the previous display frame when it is moved.
+
+The remaining four surfaces (red-, green-, blue- and bolls-) are all
+set for transparency, and will be copied one after the next to the
+combo-surface.
+
+This takes care of the initialization section of the modifications
+for using SDL with the demo code.
+
+The next part is after a display frame has been drawn to each of the
+surfaces, they have to be combined together.
+
+The <Combine-Surfaces> function:
+
+  : Combine-Surfaces ( -- )
+    hatch-surface NULL combo-surface NULL sdl-blitsurface drop
+    red-surface   NULL combo-surface NULL sdl-blitsurface drop
+    green-surface NULL combo-surface NULL sdl-blitsurface drop
+    blue-surface  NULL combo-surface NULL sdl-blitsurface drop
+    bolls-surface NULL combo-surface NULL sdl-blitsurface drop
+  ;
+
+specifies the order the images are copied in.
+
+---[ Displaying the Demo Image ]-------------------------------------
+
+The next step is to copy the final image to our main display surface,
+<screen-surface>, which is configured to be 1024x768x8.
+
+What we will be doing here, as shown in <Copy-To-Screen>:
+
+  : Copy-To-Screen ( -- )
+    3 0 do
+      3 0 do
+        combo-surface
+        screen-surface
+        i 336 * 16 +
+        j 242 * 42 +
+        Apply-Surface
+      loop
+    loop
+  ;
+
+is to create a 3x3 matrix of the final display image on our display
+surface.
+
+The <Apply-Surface> function:
+
+  : Apply-Surface ( *src *dst x y -- )
+    offset% sdl-offset-y w!                \ set offsets to rectangle
+    offset% sdl-offset-x w!
+    0 offset% sdl-offset-w w!                       \ just to be safe
+    0 offset% sdl-offset-h w!
+    NULL swap offset% sdl-blitsurface drop         \ blit the surface
+  ;
+
+requires the use of a struct definition:
+
+  create offset% sdl-rect% %allot drop
+
+defined as:
+
+  struct
+    word% field sdl-offset-x           \ top left x to place image at
+    word% field sdl-offset-y           \ top left y to place image at
+    word% field sdl-offset-w         \ width of image to be displayed
+    word% field sdl-offset-h        \ height of image to be displayed
+  end-struct sdl-rect%
+
+in the sdl-1.0b.fs file.
+
+In the call <sdl-blitsurface> if the width and height parameters are
+zeroes then the entire image will be copied to the destination x,y
+coordinates specified in the offset% struct.
+
+We have not transferred any of the image information to the actual
+video display as yet.
+
+This is accomplished next, with the call:
+
+    screen-surface sdl-flip drop            \ display the final image
+
+The full matrixed image is now visible in the main display window.
+
+---[ Exitting the Demo ]---------------------------------------------
+
+The last SDL function we will use is to check to see if it is time
+to exit the program yet.  We do this by checking the SDL Event system
+to see if anything which we define as an exit event has occurred:
+
+  \ Use sdl-pollevent to see if we have X'd out (Close Window event)
+  \ Alt-F4 will also close the window
+  \ Need to add the ESC key as an exit option
+
+    event sdl-pollevent if
+      event sdl-event-type C@ 12 = if
+        1 to quit%                                 \ exit on SDL_QUIT
+      then
+    then
+
+For now, all that we are checking for is to see if you have clicked
+the window close button ('X'), which will cause the quit% flag to be
+set to 1, exitting the program.
+
+If quit%==1, then we will free the additional surfaces that were made
+for our multiple buffers, then exit the program with sdl-quit, which
+will free <screen-surface> automatically.
+
+The display window will close, and control focus goes back to the
+terminal window with gforth.
+
+
+---[ Wrapping It Up ]------------------------------------------------
+
+For detailed information about the SDL functions, refer to the SDL
+documentation at www.libsdl.org.
+
+Until my next, enjoy.
+
+(Cheetos - I *really* need more Cheetos)
+------------------------------------------[ End of sdl-tut06.txt ]---
+

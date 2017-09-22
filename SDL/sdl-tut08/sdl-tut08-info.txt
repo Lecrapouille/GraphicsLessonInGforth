@@ -1,0 +1,21 @@
+=====================================================================
+          File: sdl-tut08.zip
+         Title: gforth: SDL/OpenGL Graphics Part VIII
+        Author: Timothy Trussell
+          Date: 03/28/2010
+   Description: A Basic 8x16 Font Engine for gforth/SDL
+=====================================================================
+               gforth: SDL/OpenGL Graphics Part VIII
+=====================================================================
+
+This is a basic font package coded for gforth. It is implemented for
+the 256-color resolutions, but could be easily expanded to be used
+with the higher color resolutions.
+
+The sdl-basicfont is a simple text generator, displaying text chars
+to an SDL surface.
+
+=====================================================================
+Timothy Trussell                                           03/28/2010
+=====================================================================
+

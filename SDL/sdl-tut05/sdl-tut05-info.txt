@@ -1,0 +1,16 @@
+=====================================================================
+          File: sdl-tut05.zip
+         Title: gforth: SDL/OpenGL Graphics Part V
+        Author: Timothy Trussell
+          Date: 02/26/2010
+   Description: Putting together the Graphics Primitives Library
+=====================================================================
+                gforth: SDL/OpenGL Graphics Part V
+=====================================================================
+
+             Building the graphics primitives library
+
+=====================================================================
+Timothy Trussell                                           02/26/2010
+=====================================================================
+

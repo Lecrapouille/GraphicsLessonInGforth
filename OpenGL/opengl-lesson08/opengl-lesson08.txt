@@ -1,0 +1,128 @@
+---[ gforth: OpenGL Graphics Lesson 08 ]--------------[07/25/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson08.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 08 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-blend-func ( sfactor dfactor -- )
+
+    Specify pixel arithmetic.
+
+   Parameters <sfactor> and <dfactor> are integer values.
+   
+      sfactor: Specifies how the red, green, blue, and alpha source
+          blending factors are computed. The following symbolic
+          constants are accepted:
+
+          GL_ZERO, GL_ONE, GL_DST_COLOR, GL_ONE_MINUS_DST_COLOR,
+          GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
+          GL_ONE_MINUS_DST_ALPHA, GL_SRC_ALPHA_SATURATE
+
+          The initial value is GL_ONE. Additionally, if the
+          GL_ARB_imaging extension is supported, the following
+          constants are accepted:
+          
+          GL_CONSTANT_COLOR, GL_ONE_MINUS_CONSTANT_COLOR,
+          GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA.
+
+      dfactor: Specifies how the red, green, blue, and alpha
+          destination blending factors are computed. Eight symbolic
+          constants are accepted:
+      
+          GL_ZERO, GL_ONE, GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR,
+          GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
+          GL_ONE_MINUS_DST_ALPHA
+          
+          The initial value is GL_ZERO. Additionally, if the
+          GL_ARB_imaging extension is supported, the following
+          constants are accepted:
+          
+          GL_CONSTANT_COLOR, GL_ONE_MINUS_CONSTANT_COLOR,
+          GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA.
+
+gl-color-4f ( red green blue alpha -- )
+
+    Set the current color.
+    
+    Parameters are 32-bit floats in the range 0.0 to 1.0
+    
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+three files to that directory:
+
+        opengl-lesson08.fs      - Code Addendum 1
+        opengllib-1.08.fs       - Code Addendum 2
+        mini-opengl-1.08.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson also uses an image file which, as with Lesson 6, you can
+retrieve immediately from the NeHe Lesson 7 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=08
+
+or from the opengl-lesson08.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson08.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.08.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson08.fs
+        lesson08
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson08.fs
+        lesson08
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 8 - Blending
+
+----------------------------------------------------[End Lesson08]---
+

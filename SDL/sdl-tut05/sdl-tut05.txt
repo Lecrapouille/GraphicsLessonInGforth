@@ -1,0 +1,153 @@
+---[ gforth: SDL/OpenGL Graphics Part V ]-------------[02/26/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column, as with the rest of this series of columns, will be 
+posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut05.zip
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+We have all of primitives needed to put a library together, so we
+will go ahead and do that.
+
+The function listing of our library consists of the following:
+
+  \ ---[ SDL Primitives ]--------------------------------------------
+  \ Basic primitive functions library
+
+  \     -------------------
+  \ ---[ Prototype Listing ]-----------------------------------------
+  \     -------------------
+
+  \ : SDLLib-Version              ( -- )
+
+  \ : Error-End                   ( f addr n -- )
+  \ : Terminate-String            ( a n -- a )
+  \ : Set-Mode-Parms              ( mode -- )
+  \ : InitGraph                   ( mode a n -- )
+  \ : CloseGraph                  ( -- )
+
+  \ : <PlotPixel>                 { *ofs _pixel _bytepp -- }
+  \ : PutPixel                    { *dst _x _y _pixel -- }
+  \ : Line                        { *dst _x1 _y1 _x2 _y2 _pixel -- }
+  \ : VLine                       { *dst _x _y1 _y2 _pixel -- }
+  \ : HLine                       { *dst _x1 _x2 _y _pixel -- }
+  \ : <Draw-Image>                { *dst _x _y _w _h *src tflag -- }
+  \ : PutImage                    ( *dst _x _y _w _h *src -- )
+  \ : PutSprite                   ( *dst _x _y _w _h *src -- )
+
+  \ : Splash-Screen               ( -- )
+  \ --------------------------------------------[ End Prototypes ]---
+
+---[ Error-End ]---
+
+This our SDL error code handler.  It is passed a boolean flag and an
+error string.  If the flag resolves to a 0 value, then the SDL
+function completed successfully, and Error-End does nothing.
+
+If the flag resolves to a non-zero value then the SDL function was
+not successful.  In this case, we need to shut down the SDL systems,
+close the display window, and print the error message to the terminal
+window. It then drops out of gforth.
+
+---[  Terminate-String ]---
+
+The SDL functions require that any strings passed are delimited with
+a 0 value.  This function converts the normal gforth string to this
+format.  To do this, the passed string has to have an extra byte at
+the end, which will be converted to a zero value.
+
+Example:
+
+   s" This is to be passed to an SDL function0" Terminate-String
+
+The address and length of the string is passed to Terminate-String,
+which changes the "0" character to an actual zero value, and leaves
+just the address of the string on the stack.
+
+---[ Set-Mode-Parms ]---
+
+This function is a shortcut, to allow you to change the resolution 
+settings for the display window by changing only one parameter - the
+one you use in your main function when calling InitGraph:
+
+        640x480x8 s" Window-Title0" InitGraph
+
+It also sets the following user variables - which the SDL library
+functions do not see (directly):
+
+        window-screenw
+        window-screenh
+        window-screenbpp
+
+---[ InitGraph ]---
+
+The call to InitGraph has been changed to allow you to set the
+window title by passing a string as the second (and third) parameters
+to the InitGraph call.  If you do not want to display a window title,
+simply put two NULL entries as the parameters instead:
+
+        640x480x8 NULL NULL InitGraph
+
+If you set the VALUE mouse-cursor-display to TRUE, then InitGraph
+will turn off the mouse cursor, so if you happen to run the mouse
+over the display window while the program is running.
+
+---[ CloseGraph ]---
+
+Re-enables the mouse cursor if mouse-cursor-display is TRUE, then
+shuts down the SDL subsystems and closes the display window.
+
+The only surface that is freed when the SDL video subsystem is shut
+down is screen-surface, which is allocated during the InitGraph call.
+It is the programmers' responsibility to free any additional memory
+allocations that the program has made (such as additional surfaces).
+
+I would suggest the coding of your own version of Error-End, which
+will also free allocated memory prior to closing down SDL.
+
+---[ Graphics Primitives ]---
+
+These primitives were discussed in my last column:
+
+        <PlotPixel>
+        PutPixel
+        Line
+        VLine
+        HLine
+        <Draw-Image>
+        PutImage
+        PutSprite
+
+and have a few more comments attached to them in this file.
+
+---[ Splash Screen ]---
+
+The last word in this library is included to show that the basic
+functions of the library work, by initializing SDL, opening a display
+window, loading and displaying a .BMP image, pausing, and then
+closing down everything.
+
+The archive version (at the Taygeta Forth Archive site) will include
+the splash screen, which I am not going to attempt to post with this
+column.
+
+---[ Wrapping It Up ]------------------------------------------------
+
+This completes the basic graphics primitives library, which will let
+us run the animation demo that I originally wrote for my Graphics of
+the Second Kind, Parts III and IV columns.
+
+------------------------------------------[ End of sdl-tut05.txt ]---
+

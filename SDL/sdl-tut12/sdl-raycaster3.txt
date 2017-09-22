@@ -1,0 +1,164 @@
+---[ gforth: SDL/OpenGL Graphics Part XII ]-----------[06/13/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut12.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+The previous two columns in this series presented two versions of the
+same RayCasting engine.  The first utilized a flat shading method to
+display the surfaces of the walls, while the second utilized image
+patterns, both generated and from an image (.PNG) file to provide the
+engine with textured walls.
+
+The world map for this engine was a basic grid oriented layout that
+is easily drawn and expanded upon for the level you wish to use.
+
+This column presents another raycasting engine, which was originally
+coded in C by Jonas Wustrack in 2006.
+
+It also utilizes an image pattern for the wall textures, and I have
+expanded it to use the same Wolfenstein3D-type images that were used
+in the previous column.
+
+The map in this engine uses a table of line segments, which are drawn
+as walls when they are rendered to the display surface. As a result
+of this, any angle you can draw a line at can be used to draw the
+walls in this engine.  If you want to have a circular room, all you
+need to do is break it down into however many small line segments are
+needed to get the room as round as you want it to be.
+
+However, all the walls are still a fixed height.
+
+---[ Objective ]-----------------------------------------------------
+
+The goal of this column is to show that it is feasible to combine
+compiled C code with gforth to implement a 3D graphics engine.
+
+The purpose in compiling and linking C code is to provide a portable
+method of using machine code on different computers that run gforth
+and SDL.  This is the same thing we are doing when using the SDL
+libraries with gforth, as they are simply compiled C code functions.
+
+I am pleased to say that I am getting FPS rates that are a little
+higher than what Jonas' compiled C code generates.  Not a lot, but
+that the results are basically equivalent is excellent.
+
+In 320x200x32, I am getting speeds up to 300 FPS, while the original
+gave speeds of up to 230 FPS, and my gforth-only renderer was giving
+about 63 FPS.
+
+In 1024x768x32 mode, my results went from 2 FPS using gforth-only
+rendering code, up to 10 FPS using the compiled C functions, which
+matches the C version of the program.
+
+---[ Implementation ]------------------------------------------------
+
+To achieve this, it was necessary to put the entire rendering section
+of Jonas' engine in a libcc interface file, so that this part of the
+code could be compiled to native assembly code.
+
+This libcc file, sdl-raycast3-1.00.fs, contains four functions:
+
+  ray-getpixel32        ( *dst x y -- pixel )
+  ray-putpixel32        ( *dst x y pixel -- )
+  ray-draw-wall         ( x idx h top bottom *texture *dest -- )
+  ray-renderframe       ( *person *wall *flen-matrix MaxWalls
+                         *flooring *texture *dest WhichTexture -- )
+
+The GetPixel and PutPixel functions are 32-bpp specific, and will not
+work correctly with the other three -bpp resolution modes.
+
+Everything except for these four functions have been coded in high
+level Forth code.
+
+The texture images used, both generated and loaded from a file, are
+loaded into SDL surfaces, which keeps the dictionary cleaner, and
+makes accessing the data from the C code easier to implement.
+
+---[Note]------------------------------------------------------------
+The <wolftextures.png> file is in a 512x64x8 format which, when it
+is loaded, is converted to a 512x64x32 surface, which takes up about
+128k of memory storage.  This does not need to be in the dictionary,
+which leaves room for things like massive linked lists and other data
+like BSP trees.
+
+Also, since the 8-bpp image is converted to a 32-bpp image, we do not
+have to worry about working with an 8-bit palette, as the pixel data
+is now in 32-bit format for us to use.
+--------------------------------------------------------[End Note]---
+
+The flag Generate-Textures, if set to 0, will cause the program to
+attempt to load the <wolftextures.png> image file.  If it is set to
+1, the program will create a basic brick texture pattern.
+
+A small help screen pop-up is visible when the program runs, and can
+be turned off by pressing the 'h' key.  Since the font code still
+uses my original gforth PutPixel code, it slows down the flow of the
+program greatly.  Turn off the help window and the FPS count will
+jump up several points.
+
+The FPS display can also be turned off (with the 'f' key), and the
+FPS count will then be redirected to display to the terminal window.
+
+As with my previous two RayCasting columns, you can run around, but
+there is no interaction with objects, shooting, or even any bad guys
+popping up.  Also, there is no collision detection, so you can run
+right through the walls without any problems.
+
+Unlike the previous two columns, in this one you are able to move
+around the map correctly, with no jumping from one grid to the next.
+
+Finally, the arrow keys will move you forward and backward, and also
+slide you to the left and right.  To turn (rotate), place the mouse
+into the display surface, and the x-movement will cause your point of
+view to spin, based on the mouse moving around. (I have not grabbed
+the mouse, which would limit its movement to within the window, as I
+find it irritating to lose control of the mouse on the desktop - and
+all the more so when the program manages to crash and the mouse is in
+limbo somewhere.)
+
+---[ Wrapping Up ]---------------------------------------------------
+
+The biggest problem that I have left in this engine is that the code
+does not correct for the visual distortion which you will see when
+getting close to a wall.  This "Fish-Eye" effect can be compensated
+for fairly easily, though I have chosen to leave it in place.
+
+Consider it homework if you wish to eliminate it from the engine.
+
+I have another RayCasting engine that I have been working with, but
+am undecided at the moment as to whether to do another column on this
+subject or not.  I am wanting to get started working with OpenGL, and
+may convert this RayCaster engine over to implement OpenGL.
+
+Ah, well - so little time, so many pixels.
+
+For those who want to play with OpenGL now, I would suggest another
+look at the 3DDemo spinning cube program which I referenced in the
+first column of this series.
+
+The <wolftextures.png> image file that this code uses will not be
+posted to comp.lang.forth, but is already available on the Taygeta
+Forth Archives in the sdl-tut11.zip file from my last column, so if
+you are impatient, just d/l that file and set the Generate-Textures
+flag to 0 and recompile.
+
+(The link for the Taygeta site is at the top of this column.)
+
+Until later.
+------------------------------------------------[End RayCasting-3]---

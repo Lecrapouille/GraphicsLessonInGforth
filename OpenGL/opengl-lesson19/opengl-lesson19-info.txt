@@ -1,0 +1,20 @@
+=====================================================================
+            File: opengl-lesson19.zip
+          Author: Jeff Molofee
+   Linux Version: Ti Leggett
+  gForth Version: Timothy Trussell, 08/01/2010
+     Description: Particle Engine Using Triangle Strips
+    Forth System: gforth-0.7.0
+    Linux System: Ubuntu v10.04 LTS i386, kernel 2.6.31-24
+    C++ Compiler: gcc version 4.4.3 (Ubuntu 4.4.3-4ubuntu5)
+=====================================================================
+                         NeHe Productions 
+                      http://nehe.gamedev.net/
+=====================================================================
+                     OpenGL Tutorial Lesson 19
+=====================================================================
+
+        Conversion of NeHe's OpenGL Lesson 19 code for gforth
+
+=====================================================================
+

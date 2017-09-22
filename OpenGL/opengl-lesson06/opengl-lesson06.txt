@@ -1,0 +1,287 @@
+---[ gforth: OpenGL Graphics Lesson 06 ]--------------[07/24/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson06.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 06 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-bind-texture ( target texture -- )
+
+    Bind a named texture to a texturing target
+
+    Parameters <target> and <texture> are integer values.
+
+      target:  Specifies the target to which the texture is bound.
+               Can be: 
+                        GL_TEXTURE_1D 
+                        GL_TEXTURE_2D
+                        GL_TEXTURE_3D
+					
+      texture: Specifies the name of a texture.
+
+gl-gen-textures ( n *textures -- )
+
+    Generate texture names
+
+    Parameter <n> is an integer, and <*textures> is a 32-bit address
+
+      n:        Specifies the number of texture names to be generated
+
+      textures: Specifies an array in which the generated texture
+                names are stored.
+                (In gforth, for a single texture, it can be simply a
+                 variable address.)
+
+---[Note]------------------------------------------------------------
+In gl-bind-texture and gl-gen-texture the use of the term "name" that
+is used can be slightly misleading, as "name" references the OpenGL
+pointers that are created when the texture images are processed and
+stored in the OpenGL system. These integer values that are created by
+the call to gl-gen-textures are stored at the address that is pointed
+to by the *textures parameter.
+
+The texture parameter in the call to gl-bind-texture is the actual
+pointer value that has been created in the gl-gen-textures call, not
+the address of the array where they are stored.
+--------------------------------------------------------[End Note]---
+
+gl-tex-coord-2f ( s t -- )
+
+    Specifies texture coordinates in two dimensions
+
+    Parameters <s> and <t> are 32-bit floats.
+
+    The <s> and <t> parameters are the x/y coordinates defining the
+    placement of the texture being worked with.
+
+    Check http://www.gamedev.net/reference/articles/article947.asp
+    for more information on this function.
+
+    (In gforth, as these are passed by value, there is no conversion
+    necessary to make these values into 32-bit floats from the normal
+    gforth 64-bit floating point value.)
+
+
+gl-tex-image-2d ( target level ifmt w h border fmt type *pixels -- )
+
+    Defines texture images
+
+    Parameters: All parameters except <*pixels> are integer values.
+                <*pixels> is a 32-bit address pointer.
+
+      target:  Specifies the target texture.
+               Can be GL_TEXTURE_2D or GL_PROXY_TEXTURE_2D
+					
+      level:   Specifies the level-of-detail number.
+               Level 0 is the base image level.
+               Level n is the nth mipmap reduction image.
+
+      ifmt:    Specifies the number of color components in the
+               texture. Must be 1, 2, 3, or 4, or one of the
+               following symbolic constants:
+
+                 GL_ALPHA, GL_ALPHA4, GL_ALPHA8, GL_ALPHA12,
+                 GL_ALPHA16, GL_LUMINANCE, GL_LUMINANCE4,
+                 GL_LUMINANCE8, GL_LUMINANCE12, GL_LUMINANCE16,
+                 GL_LUMINANCE_ALPHA, GL_LUMINANCE4_ALPHA4,
+                 GL_LUMINANCE6_ALPHA2, GL_LUMINANCE8_ALPHA8,
+                 GL_LUMINANCE12_ALPHA4, GL_LUMINANCE12_ALPHA12,
+                 GL_LUMINANCE16_ALPHA16, GL_INTENSITY, GL_INTENSITY4,
+                 GL_INTENSITY8, GL_INTENSITY12, GL_INTENSITY16,
+                 GL_R3_G3_B2, GL_RGB, GL_RGB4, GL_RGB5, GL_RGB8,
+                 GL_RGB10, GL_RGB12, GL_RGB16, GL_RGBA, GL_RGBA2,
+                 GL_RGBA4, GL_RGB5_A1, GL_RGBA8, GL_RGB10_A2,
+                 GL_RGBA12, GL_RGBA16
+    					
+      w:       Specifies the width of the texture image.
+
+      h:       Specifies the height of the texture image.
+
+      border:  Specifies the width of the border in range [0..1]
+
+      fmt:     Specifies the format of the pixel data.
+               The following symbolic values are accepted:
+
+                 GL_COLOR_INDEX, GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA,
+                 GL_RGB, GL_BGR, GL_RGBA, GL_BGRA, GL_LUMINANCE,
+                 GL_LUMINANCE_ALPHA
+
+      type:    Specifies the data type of the pixel data.
+               The following symbolic values are accepted:
+
+                 GL_UNSIGNED_BYTE
+                 GL_BYTE, GL_BITMAP
+                 GL_UNSIGNED_SHORT
+                 GL_SHORT, GL_UNSIGNED_INT
+                 GL_INT, GL_FLOAT
+                 GL_UNSIGNED_BYTE_3_3_2
+                 GL_UNSIGNED_BYTE_2_3_3_REV
+                 GL_UNSIGNED_SHORT_5_6_5
+                 GL_UNSIGNED_SHORT_5_6_5_REV
+                 GL_UNSIGNED_SHORT_4_4_4_4
+                 GL_UNSIGNED_SHORT_4_4_4_4_REV
+                 GL_UNSIGNED_SHORT_5_5_5_1
+                 GL_UNSIGNED_SHORT_1_5_5_5_REV
+                 GL_UNSIGNED_INT_8_8_8_8
+                 GL_UNSIGNED_INT_8_8_8_8_REV
+                 GL_UNSIGNED_INT_10_10_10_2
+                 GL_UNSIGNED_INT_2_10_10_10_REV
+
+      *pixels: Specifies a pointer to the image data in memory.
+
+
+gl-tex-parameter-i ( target pname param -- )
+
+    Sets texture parameters
+
+    Parameters <target>, <pname> and <param> are integer values.
+
+      target: Specifies the target texture, which must be one of:
+
+              GL_TEXTURE_1D
+              GL_TEXTURE_2D
+              GL_TEXTURE_3D
+
+      pname:  Specifies the symbolic name of a single-valued texture
+              parameter. pname can be one of the following:
+
+                GL_TEXTURE_MIN_FILTER
+                GL_TEXTURE_MAG_FILTER
+                GL_TEXTURE_MIN_LOD
+                GL_TEXTURE_MAX_LOD
+                GL_TEXTURE_BASE_LEVEL
+                GL_TEXTURE_MAX_LEVEL
+                GL_TEXTURE_WRAP_S
+                GL_TEXTURE_WRAP_T
+                GL_TEXTURE_WRAP_R
+                GL_TEXTURE_PRIORITY
+
+      param:  Specifies the value of pname
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+Additions to the mini-sdl libcc interface for this lesson are not
+actually needed until Lesson 9 and Lesson 21, but I wanted to get
+them out of the way.
+
+---[ Installation ]--------------------------------------------------
+
+For the files received from the comp.lang.forth newsgroup, copy these
+files:
+
+        opengl-lesson06.fs      - Code Addendum 1
+        opengllib-1.06.fs       - Code Addendum 2
+        mini-opengl-1.06.fs     - Code Addendum 3
+        mini-sdl-1.01.fs        - Code Addendum 4
+        libutil.sh              - Code Addendum 6
+
+to the same directory with the previous Lesson files.
+
+(The libutil.sh file will need to be converted to a UNIX text file,
+using a utility like flip, which I reference in libutil.txt, and then
+have the executable permission set.)
+
+For the files from the opengl-lesson06.zip, extract them to wherever
+you wish to place them, or extract the above four files into the
+directory you have placed the previous Lesson files.
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+If you plan to use the LibUtil script, do the following:
+
+Edit the opengllib-1.06.fs file, making sure that the UseLibUtil
+constant is set to a value of 1:
+
+        1 constant UseLibUtil
+
+From a terminal window, cd to your Lesson directory, and execute the
+LibUtil program:
+
+        ./libutil.sh -ra
+
+to remove the previous mini_opengl_lib and mini_sdl_lib compilations,
+then execute it again:
+
+        ./libutil.sh -i
+
+to install the libcc interfaces for this Lesson.
+
+This Lesson includes an image file, <nehe.bmp>, in the directory
+data/.  To be able to run this immediately, the easiest way to get
+this file is to download the Linux/SDL conversion of Lesson 6 from
+the list at the bottom of the Lesson 6 Tutorial page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=06
+
+(The opengl-lesson06.zip archive will be available shortly on the
+Taygeta Forth Achive site, as mentioned at the top of this column, 
+and will include all files needed for this Lesson.)
+
+You could also substitute any 256x256 .BMP image you have handy.
+
+Extract the data/ directory from the lesson06.tar.gz file (from the
+NeHe Tutorial page) and place it with the rest of your Lesson files.
+
+Then:
+        cd ~/<wherever you put it> <cr>
+        ./libutil.sh -ra
+        ./libutil.sh -i
+        gforth <cr>
+        include opengl-lesson06.fs <cr>
+        lesson06 <cr>
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+If you do not want to use the LibUtil script, edit opengllib-1.06.fs
+and set the UseLibUtil constant to 0:
+
+        0 constant UseLibUtil
+
+This will cause the libcc interface files to use the names:
+
+        mini_opengl_lib06
+        mini_sdl_lib06
+
+which will not interfere with previously compiled libcc code.
+
+(I will be adding this option to all further Lessons.)
+
+Then:
+        cd ~/<wherever you put it> <cr>
+        gforth <cr>
+        include opengl-lesson06.fs <cr>
+        lesson06 <cr>
+
+Either way, you will need the data/ directory with the nehe.bmp image
+file.
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 7 - Filters, Lighting and Keyboard
+
+----------------------------------------------------[End Lesson06]---
+

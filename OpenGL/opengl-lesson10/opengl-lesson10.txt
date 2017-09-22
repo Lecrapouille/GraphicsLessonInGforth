@@ -1,0 +1,87 @@
+---[ gforth: OpenGL Graphics Lesson 10 ]--------------[07/25/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson10.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 10 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+There are no new OpenGL additions to the mini-opengl libcc interface
+for this lesson.
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+three files to that directory:
+
+        opengl-lesson10.fs      - Code Addendum 1
+        opengllib-1.10.fs       - Code Addendum 2
+        mini-opengl-1.10.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson also uses an image file which you can retrieve from the
+NeHe Lesson 10 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=10
+
+or from the opengl-lesson10.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson10.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.10.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson10.fs
+        lesson10
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson10.fs
+        lesson10
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 11 - Flag effect (waving texture)
+
+----------------------------------------------------[End Lesson10]---
+

@@ -1,0 +1,16 @@
+=====================================================================
+          File: sdl-tut06.zip
+         Title: gforth: SDL/OpenGL Graphics Part VI
+        Author: Timothy Trussell
+          Date: 02/28/2010
+   Description: Exercising the Graphics Primitives Library
+=====================================================================
+                gforth: SDL/OpenGL Graphics Part VI
+=====================================================================
+
+            Exercising the graphics primitives library
+
+=====================================================================
+Timothy Trussell                                           02/28/2010
+=====================================================================
+

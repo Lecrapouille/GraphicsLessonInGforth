@@ -1,0 +1,128 @@
+---[ gforth: OpenGL Graphics Lesson 27 ]--------------[06/16/2011]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson27.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 27 at
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=27
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-cull-face ( mode -- )
+
+    specify whether front- or back-facing facets can be culled
+     
+    Parameter <mode> is an integer value.
+
+      mode: Specifies whether front- or back-facing facets are
+         candidates for culling.
+         Symbolic constants GL_FRONT, GL_BACK, and GL_FRONT_AND_BACK
+         are accepted. The initial value is GL_BACK.
+
+gl-depth-mask ( flag -- )
+
+    enable or disable writing into the depth buffer
+
+    Parameter <flag> is an integer value.
+
+      flag: Specifies whether the depth buffer is enabled for 
+         writing. If flag is GL_FALSE, depth buffer writing is 
+         disabled. Otherwise, it is enabled. Initially, depth buffer 
+         writing is enabled.
+
+gl-front-face ( mode -- )
+
+    define front- and back-facing polygons
+    
+    Parameter <mode> is an integer value.
+
+      mode: Specifies the orientation of front-facing polygons. 
+         GL_CW and GL_CCW are accepted. 
+         The initial value is GL_CCW.
+
+gl-material-fv ( face pname *params -- )
+
+    specify material parameters for the lighting model
+    
+    Parameters <face> and <pname> are integers; <*params> is a
+        pointer to an array of 32-bit floats (SFLOATs)
+
+      face: Specifies which face or faces are being updated. 
+         Must be one of GL_FRONT, GL_BACK, or GL_FRONT_AND_BACK.
+
+      pname: Specifies the single-valued material parameter of the 
+         face or faces that is being updated. Must be GL_SHININESS.
+
+      *params: Specifies the value that parameter GL_SHININESS will 
+         be set to.
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+files to that directory:
+
+        opengl-lesson27.fs      - Code Addendum 1
+        opengllib-1.27.fs       - Code Addendum 2
+        mini-opengl-1.27.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.02.fs file from Lesson 24 as well
+as all of the usual constants definition files.
+
+The four data files used by the original code have been incorporated
+into the source code of this Lesson.
+
+For the files from the opengl-lesson27.zip, extract them to wherever
+you wish to place them, or extract the above files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.27.fs:
+
+        1 =: UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson27.fs
+        lesson27
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 =: UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson27.fs
+        lesson27
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 28 - Bezier Patches
+
+----------------------------------------------------[End Lesson27]---

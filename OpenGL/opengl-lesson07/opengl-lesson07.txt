@@ -1,0 +1,215 @@
+---[ gforth: OpenGL Graphics Lesson 07 ]--------------[07/25/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson07.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 07 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-disable ( capability -- )
+
+    Disables (turns off) OpenGL capabilities.
+    
+    Parameter <capability> is an integer value.
+    
+    The initial value for each capability with the exception of
+    GL_DITHER is GL_FALSE. The initial value for GL_DITHER is GL_TRUE
+
+    The listing of the capabilities that can be enabled/disabled is
+    very large, and can be referenced online at a site such as:
+    
+       http://pyopengl.sourceforge.net/documentation/manual/
+    
+gl-light-fv ( light pname *param -- )
+
+    Set light source parameters
+    
+    Parameter <light> and <pname> are integers, and <*param> is a
+    pointer to an array of 32-bit floating point values.
+
+      light: Specifies a light. The number of lights depends on the
+          implementation, but at least eight lights are supported.
+          They are identified by symbolic names of the form:
+
+              GL_LIGHT i
+
+          where 0 ≤  i < GL_MAX_LIGHTS.
+
+      pname: Specifies a light source parameter for light.
+          GL_AMBIENT, GL_DIFFUSE, GL_SPECULAR, GL_POSITION,
+          GL_SPOT_CUTOFF, GL_SPOT_DIRECTION, GL_SPOT_EXPONENT,
+          GL_CONSTANT_ATTENUATION, GL_LINEAR_ATTENUATION, and
+          GL_QUADRATIC_ATTENUATION are accepted.
+
+      param: Specifies a pointer to the value or values that
+          parameter pname of light source light will be set to.
+
+gl-normal-3f ( nx ny nz -- )
+
+    Set the current normal vector.
+    
+    Parameters <nx>, <ny> and <nz> are 32-bit floats.
+    
+    (In gforth, as these are passed by value, there is no conversion
+    necessary to make these values into 32-bit floats from the normal
+    gforth 64-bit floating point value.)
+
+      nx, ny, nz: Specify the x, y and z coordinates of the new
+          current normal. The initial value of the current normal is
+          the unit vector, (0, 0, 1).
+
+glu-build-2d-mipmaps ( target internalformat width height format
+                       type *data -- )
+
+    Builds a two dimensional bitmap.
+    
+    All parameters except for *data are integers.
+    The <*data> parameter is a 32-bit pointer for the source data.
+
+      target: Specifies the target texture. Must be GL_TEXTURE_2D.
+
+      internalFormat: Requests the internal storage format of the
+          texture image. Must be 1, 2, 3, 4, or one of the following
+          symbolic constants:
+      
+          GL_ALPHA, GL_ALPHA4, GL_ALPHA8, GL_ALPHA12, GL_ALPHA16,
+          GL_LUMINANCE, GL_LUMINANCE4, GL_LUMINANCE8, GL_LUMINANCE12,
+          GL_LUMINANCE16, GL_LUMINANCE_ALPHA, GL_LUMINANCE4_ALPHA4,
+          GL_LUMINANCE6_ALPHA2, GL_LUMINANCE8_ALPHA8,
+          GL_LUMINANCE12_ALPHA4, GL_LUMINANCE12_ALPHA12,
+          GL_LUMINANCE16_ALPHA16, GL_INTENSITY, GL_INTENSITY4,
+          GL_INTENSITY8, GL_INTENSITY12, GL_INTENSITY16, GL_RGB,
+          GL_R3_G3_B2, GL_RGB4, GL_RGB5, GL_RGB8, GL_RGB10, GL_RGB12,
+          GL_RGB16, GL_RGBA, GL_RGBA2, GL_RGBA4, GL_RGB5_A1,
+          GL_RGBA8, GL_RGB10_A2, GL_RGBA12, GL_RGBA16
+
+      width, height: Specifies in pixels the width and height,
+          respectively, of the texture image.
+
+      format: Specifies the format of the pixel data. Must be one of
+          GL_COLOR_INDEX, GL_DEPTH_COMPONENT, GL_RED, GL_GREEN,
+          GL_BLUE, GL_ALPHA, GL_RGB, GL_RGBA, GL_BGR, GL_BGRA,
+          GL_LUMINANCE, or GL_LUMINANCE_ALPHA.
+
+      type: Specifies the data type for data. Must be one of
+          GL_UNSIGNED_BYTE, GL_BYTE, GL_BITMAP, GL_UNSIGNED_SHORT,
+          GL_SHORT, GL_UNSIGNED_INT, GL_INT, GL_FLOAT,
+          GL_UNSIGNED_BYTE_3_3_2, GL_UNSIGNED_BYTE_2_3_3_REV,
+          GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_5_6_5_REV,
+          GL_UNSIGNED_SHORT_4_4_4_4, GL_UNSIGNED_SHORT_4_4_4_4_REV,
+          GL_UNSIGNED_SHORT_5_5_5_1, GL_UNSIGNED_SHORT_1_5_5_5_REV,
+          GL_UNSIGNED_INT_8_8_8_8, GL_UNSIGNED_INT_8_8_8_8_REV,
+          GL_UNSIGNED_INT_10_10_10_2, GL_UNSIGNED_INT_2_10_10_10_REV
+
+      *data: Specifies a pointer to the image data in memory.
+    					              
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+three files to that directory:
+
+        opengl-lesson07.fs      - Code Addendum 1
+        opengllib-1.07.fs       - Code Addendum 2
+        mini-opengl-1.07.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson also uses an image file which, as with Lesson 6, you can
+retrieve immediately from the NeHe Lesson 7 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=07
+
+or from the opengl-lesson07.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson07.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.07.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson07.fs
+        lesson07
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson07.fs
+        lesson07
+
+---[ Also Related ]--------------------------------------------------
+
+I upgraded my nVidia GeForce 7300GS video card to an nVidia GT240,
+which is CUDA-capable with 96 Stream Processors onboard.
+
+---[ CUDA
+CUDA (an acronym for Compute Unified Device Architecture) is a
+parallel computing architecture developed by NVIDIA. CUDA is the
+computing engine in NVIDIA graphics processing units (GPUs) that is
+accessible to software developers through variants of industry
+standard programming languages.       (from the WikiPedia entry) ]---
+
+By comparison, the GT285 card has 240 of the Stream Processors, and
+the high-end GTX 480 has 480 Stream Processors, so the GT240 is
+definitely a budget card on both price and performance.
+
+However, it took my frames-per-second levels from @ 700 on the 7300GS
+up to the 2400~3000 fps level on the NeHe Tutorials. So, if you find
+your OpenGL programs start bogging down due to attempting to do too
+much, consider upgrading to a CUDA-capable video card.
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+This has given me the (possibly delusional) idea of creating a CUDA
+libcc interface for gforth.
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+I have also come across references where those Stream Processors are
+being used for some interesting parallel processing applications, and
+that is something that would be awesome to see done with Forth.
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 8 - Blending
+
+----------------------------------------------------[End Lesson07]---
+

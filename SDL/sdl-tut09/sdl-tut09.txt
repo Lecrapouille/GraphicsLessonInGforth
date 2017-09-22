@@ -1,0 +1,387 @@
+---[ gforth: SDL/OpenGL Graphics Part IX ]------------[04/17/2010]--- 
+
+---------------------[ Wu Lines in Forth Redux ]---------------------
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut09.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+I originally posted this column on 11/11/2009, but as I mentioned in
+one of the earlier gforth/SDL columns, I wanted to go back and redo
+some of my earlier programs using SDL.
+
+The Wu lines demo, as well as all of my earlier columns, was done in
+standard VGA Mode 13h - 320x200x8, and until now I have not had the
+chance to see how the Wu lines look in any of the higher resolutions.
+
+Now I have, and I must say that they do look as good as I had thought
+they might.
+
+The original code only created two color gradient structures in the
+256-color palette, but I have a method that will allow us to display
+the Wu lines in any of the selected resolution colors, does not take
+up any of the palette at all in 8-bpp resolutions, and also works in
+the 16-, 24- and 32-bpp resolutions.
+
+Since the time of my original posting, I have had occasion to do
+further research into Wu Lines, and so far the code by Michael Abrash
+(the core of the function I present here) is the only example of this
+algorithm that I have as yet found.  The various Wu functions that I
+have come across all use this same code, with slight changes, such as
+using 32.32 Fixed Point (requiring 64-bit math functions).
+
+So, I present again the previous column, re-written to encompass the
+modifications for SDL.
+
+---[ Where We Were ]-------------------------------------------------
+
+Learning to work with new-old toys.
+
+I have been going through some of the code from Michael Abrash's
+columns in Dr. Dobbs Journal, and came upon his implementation of
+Xiaolin Wu's antialiasing line drawing algorithm.
+
+Rather than try to explain it myself, here is a short extract from
+the column:
+
+---[ Fast Antialiased Lines Using Wu's Algorithm ]-------------------
+
+Author: Michael Abrash
+Source: Dr Dobbs Journal, Feb 1992
+
+Antialiasing is the process of smoothing lines and edges so that
+they appear less jagged.  Antialiasing is partly an aesthetic issue,
+because it makes it possible to position and draw images with
+effectively more precision than the resolution of the display.
+It's also a necessity, to avoid the horrible, crawling, jagged edges
+of temporal aliasing when performing animation.
+
+The basic premise of Wu antialiasing is almost ridiculously simple:
+As the algorithm steps one pixel unit at a time along the major
+(longer) axis of a line, it draws the two pixels bracketing the line
+along the minor axis at each point. Each of the two bracketing pixels
+is drawn with a weighted fraction of the full intensity of the
+drawing color, with the weighting for each pixel equal to one minus
+the pixel's distance along the minor axis from the ideal line.
+
+The intensities of the two pixels that bracket the line are selected
+so that they always sum exactly 1; that is, to the intensity of one
+fully illuminated pixel of the drawing color. The presence of
+aggregate full-pixel intensity means that at each step, the line has
+the same brightness it would have if a single pixel were drawn at
+precisely the correct location. Moreover, thanks to the distribution
+of the intensity weighting, that brightness is centered at the ideal
+line. Not coincidentally, a line drawn with pixel pairs of aggregate
+single-pixel intensity, centered on the ideal line, is perceived by
+the eye not as a jagged collection of pixel pairs, but as a smooth
+line centered on the ideal line. Thus, by weighting the bracketing
+pixels properly at each step, we can readily produce what looks like
+a smooth line at precisely the right locatin, rather than the jagged
+pattern of line segments that non-aliased line drawing algorithms
+such as Bresenham's trace out.
+
+Horizontal, vertical and diagonal lines do not require antialiasing
+because they pass through the center of every pixel they meet; such
+lines can be drawn with fast, special-case code. For all other cases
+Wu lines are traced out one step at a time along the major axis by
+means of a simple, fixed-point algorithm. The move along the minor
+axis with respect to a one-pixel move along the major axis (the slope
+for lines with slopes less than 1, 1/slope for lines with slopes
+greater than 1) is calculated with a single integer divide. This
+value, called the 'error adjust,' is stored as a fixed-point fraction
+in 0.16 format (that is, all bits are fractional, and the decimal
+point is just to the left of bit 15). An error accumulator, also in
+0.16 format, is initialized to 0. Then the first pixel is drawn; no
+weighting is needed, because the line intersects it's endpoints
+exactly.
+
+Now the error adjust is added to the error accumulator. The error
+accumulator indicates how far between pixels the line has progressed
+along the minor axis at any given step; when the error accumulator
+turns over, the major axis coordinate advances by one pixel. The two
+bracketing pixels to draw are simply the two pixels nearest the line
+along the minor axis. For instance, if X is the current major-axis
+coordinate and Y is the current minor-axis coordinate, the two pixels
+to be drawn are (X,Y) and (X,Y+1). In short, the derivation of the
+pixels at which to draw involves nothing more complicated than
+advancing one pixel along the major axis, adding the error adjust to
+the error accumulator, and advancing one pixel along the minor axis
+when the error accumulator turns over.
+
+We know which pair of pixels to draw at each step along the line, but
+we also need to generate the two proper intensities, which must be
+inversely proportional to distance from the ideal line and sum to 1,
+and that's a potentially time-consuming operation. Let's assume,
+however, taht the number of possible intensity levels to be used for
+weighting is the value NumLevels=2~n for some integer n, with the
+minimum weighting (0% intensity) being the value 2~n-1, and the
+maximum weighting (100% intensity) being the value 0. Given that, the
+most significant n bits of the error accumulator select the proper
+intensity value for one element of the pixel pair. Better yet, 2~n-1
+minus the intensity of the first pixel selects the intensity of the
+other pixel in the pair, because the intensities of the two pixels
+must sum to 1; as it happens, this result can be obtained simply by
+flipping the n least-significant bits of the first pixel's value.
+All this works because what the error accumulator accumulates is
+precisely the ideal lines current distance between the two bracketing
+pixels.
+
+The intensity calculations take longer to describe than they do to
+perform. All that's involved is a shift of the error accumulator to
+right-justify the desired intensity weighting bits, and then an XOR
+to flip the least-significant n bits of the first pixel's value in
+order to generate the second pixel's value.
+
+Make no mistake about it, Wu antialiasing is fast.
+
+-----------------------------------------------------[End Extract]---
+
+---[Note]------------------------------------------------------------
+Another basic exploration of the theory, with some pseudo code and
+some nice images that show how the lines look, can be found at:
+
+   http://freespace.virgin.net/hugo.elias/graphics/x_wuline.htm
+
+There is also a really nice Windows demo showing the line function in
+use at the bottom of the page.  No source code on the demo, though,
+or I would be including a port of it with this column.
+--------------------------------------------------------[End Note]---
+
+Sounds simple, doesn't it.  It is.
+
+The Wu Line code follows the outline of what Michael describes in his
+column - as it should, since this is a straightforward conversion of
+his code to Forth.  Therefore, I am not going to attempt an in-depth
+theory of operation description of how and why things get done. I
+think what is in the extract above is sufficient to get a working
+idea on what is going on in the program flow.
+
+The code I have written contains a large number of VALUEs, which are
+used to provide readability of the code.  For those whose thoughts
+on this are - "but isn't that slower?" - my answer is: maybe.
+
+Stack thrashing is not *always* the fastest way to access the data
+we would normally leave on the stack - in this case the parameters
+that are passed to the <wu-line> function.
+
+It also occurs to me that occasionally we seem to forget that we (or
+at least, I) am/are no longer working on a computer with a 386SX-16
+processor in it, where every cycle *has* to be optimized for even the
+simplest operations, to prevent bottlenecks in the overall program.
+
+However, if we were trying to optimize the code for the maximum
+possible drawing speed, this code would be done in assembly, not as
+high-level Forth.
+
+Also, as the code *is* in high-level Forth, it should be usable on a
+number of different systems that can run gforth, since it is not
+locked to a specific CPUs mnemonics.
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+The <draw-line> function references the flag <draw-antialias-mode>
+which, if TRUE, uses the <wu-line> function to draw the next line.
+
+If the flag is FALSE, then the Bresenham <Line> function in my SDL
+library (sdllib.fs) is used to draw the next line.
+
+<Side-1>, <Side-2>, <Side-3> and <Side-4> draw the test patterns to
+the display surface.
+
+<WuTest> draws the test patterns first with <wu-line> and then after
+a delay with the Bresenham line.  This alternates back and forth for
+the duration of the demo.
+
+While viewing this demo, do not look only at the top center area of
+the display, where I think your eyes will naturally be drawn.
+
+You should also look at the sides to see how the jagged lines are
+smoothed by the Wu Line Algorithm.
+
+<WuDemo> and <BresDemo> draw the corresponding demo display to the
+screen, and wait for ESC to exit.  These are just to let you study
+each at your leisure, if you so choose.
+
+Press ESC to exit these routines (or close the window with your mouse
+button).
+
+---[ Adding Display Colors - Extending Wu Line Functionality ]-------
+
+The original code by Michael Abrash limited the display to two colors
+which took up 64 of the 256 colors in the Mode 13h 8-bpp palette.
+
+This represented a major limitation on the use of the algorithm in a
+practical application.
+
+With the SDL interface, this limitation is no longer present.
+
+By passing the r/g/b settings for the 24-bpp value of the color you
+wish to use through the <sdl-map-rgb> function, any color in the
+available screen resolution can be used for the line to be drawn.
+
+These are the basic 16 colors that correspond to the DOS text mode
+colors, which are what I most commonly use for most of my lines:
+
+        #Black
+        #Blue
+        #Green
+        #Cyan
+        #Red
+        #Magenta
+        #Brown
+        #LightGray
+        #DarkGray
+        #LightBlue
+        #LightGreen
+        #LightCyan
+        #LightRed
+        #LightMagenta
+        #Yellow
+        #White
+
+In basic VGA and DOS text modes, these are in the range [0..15], and
+reference the 8-bpp palette.
+
+Those values do *not* work correctly in the SDL display system. One
+of the problems I have been having is with the SDL 8-bpp palette.
+Trying to use the above values [0..15] with the palette that the SDL
+system creates gives my system a lot of basically blue colors.
+
+The "obvious" initial fix was to copy a "real" VGA 8-bpp palette to
+the SDL surfaces - which I did for my SDL VBoll demo which I posted
+in Part VI of this column.  The colors worked, but all of them are
+very dim compared to the normal color intensities that I wanted.
+
+My solution to this is to use the SDL_MapRGB <sdl-map-rgb> function,
+which takes the r/g/b values of the color you want and converts them
+to a value that is closest to what is available in the current bpp
+resolution.
+
+The color values I have found that will work correctly are:
+
+            Red   Green   Blue   Color Name
+         +------+-------+------+--------------+
+         |    0 |    0  |    0 | Black        |
+         +------+-------+------+--------------+
+         |    0 |    0  | $0FF | Blue         |
+         +------+-------+------+--------------+
+         |    0 | $0FF  |    0 | Green        |
+         +------+-------+------+--------------+
+         |    0 | $0CD  | $0CD | Cyan         |
+         +------+-------+------+--------------+
+         | $0FF |    0  |    0 | Red          |
+         +------+-------+------+--------------+
+         | $0FF |    0  | $0FF | Magenta      |
+         +------+-------+------+--------------+
+         | $08A | $036  | $00F | Brown        |
+         +------+-------+------+--------------+
+         | $09E | $09E  | $09E | LightGray    |
+         +------+-------+------+--------------+
+         | $06B | $06B  | $06B | DarkGray     |
+         +------+-------+------+--------------+
+         | $01E | $090  | $0FF | LightBlue    |
+         +------+-------+------+--------------+
+         |    0 | $0FA  | $09A | LightGreen   |
+         +------+-------+------+--------------+
+         | $097 | $0FF  | $0FF | LightCyan    |
+         +------+-------+------+--------------+
+         | $0FF | $030  | $030 | LightRed     |
+         +------+-------+------+--------------+
+         | $0E0 | $066  | $0FF | LightMagenta |
+         +------+-------+------+--------------+
+         | $0FF | $0FF  |    0 | Yellow       |
+         +------+-------+------+--------------+
+         | $0FF | $0FF  | $0FF | White        |
+         +------+-------+------+--------------+
+
+And the function to generate the correct values is:
+
+        : Initialize-Colors ( -- )
+          screen-surface sdl-surface-format @ >R
+          R@    0    0    0 sdl-map-rgb to #Black
+          R@    0    0 $0FF sdl-map-rgb to #Blue
+          R@    0 $0FF    0 sdl-map-rgb to #Green
+          R@    0 $0CD $0CD sdl-map-rgb to #Cyan
+          R@ $0FF    0    0 sdl-map-rgb to #Red
+          R@ $0FF    0 $0FF sdl-map-rgb to #Magenta
+          R@ $08A $036 $00F sdl-map-rgb to #Brown
+          R@ $09E $09E $09E sdl-map-rgb to #LightGray
+          R@ $06B $06B $06B sdl-map-rgb to #DarkGray
+          R@ $01E $090 $0FF sdl-map-rgb to #LightBlue
+          R@    0 $0FA $09A sdl-map-rgb to #LightGreen
+          R@ $097 $0FF $0FF sdl-map-rgb to #LightCyan
+          R@ $0FF $030 $030 sdl-map-rgb to #LightRed
+          R@ $0E0 $066 $0FF sdl-map-rgb to #LightMagenta
+          R@ $0FF $0FF    0 sdl-map-rgb to #Yellow
+          R> $0FF $0FF $0FF sdl-map-rgb to #White
+        ;
+
+The <Initialize-Colors> function passes each of the R/G/B components
+through the sdl-map-rgb SDL function, which returns the pixel value
+of the color defined -- in the format required for the specified
+surface. This means that <Initialize-Colors> works for all four of
+the available BPP settings we have (8-, 16-, 24- and 32-bpp).
+
+For an 8-bpp surface, the function returns color values in the range
+[0..255].
+
+For a 16-bpp surface, the function returns a 16-bit value with the
+colors organized in the 5-6-5 pattern.
+
+For a 24-bpp surface, a 32-bit value is returned, with the highest
+8 bits being ignored.
+
+And for a 32-bpp surface, a 24-bpp value is returned, but you can set
+the highest 8-bits to a value for Alpha Transparency use.
+
+The normal defined value for the color Cyan is $000 $0FF $0FF, but I
+find that color too glaring for my taste, and have chosen the above
+values, which I like much better. It is my palette, and I can change
+it if I want to.  And so can you.
+
+When the <wu-line> function is called, the first step that is done is
+to break the <fg> and <bg> colors down into their separate r/g/b
+values, and then the <generate-gamma> function is called, which makes
+a table of the gradiated color values based on the <fg>/<bg> values.
+
+If speed is an issue, these tables can be pre-calculated during the
+initialization phase of your program (or even when the source code is
+being compiled) for each of the colors that you would be using for
+lines, thus eliminating the slight bottleneck for when a new line is
+being drawn, as the <generate-gamma> function is called for *every*
+line being drawn.
+
+Now that we have an easy method of getting the correct pixel values
+for the modes available, the hard part is to determine what colors
+you want to use in your programs. But, it is not too bad. After all,
+there are only a piddling 16,777,216 of them to choose from.
+
+---[ Wrapping Up ]---------------------------------------------------
+
+If you are working with line drawing functions, this has the ability
+to give your display a much-improved look.  I have plans to see how
+(or if) this will improve the edges of the filled polygons that I
+am working with, after I port *that* code to SDL.
+
+That's it for this one, and with not a 'comprised' in sight.
+
+And, as before, if anyone has cause to email Michael Abrash, ask him
+if he still enjoys fried, stewed chicken.
+
+------------------------------------------------[End WuLine Redux]---
+

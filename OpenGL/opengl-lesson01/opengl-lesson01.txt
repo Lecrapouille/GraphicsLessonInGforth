@@ -1,0 +1,421 @@
+---[ gforth: OpenGL Graphics Lesson 01 ]--------------[07/06/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson01.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+With these OpenGL tutorials, I am going to do something different.
+
+Rather than start from scratch, I am going to present conversions of
+tutorials that have already been created in C and C++, and which are
+available at the following website:
+
+                      www.nehe.gamedev.net
+
+While the original code was written in Visual C++ under Windows,
+there have been many conversions done (and are available for download
+at the bottom of each tutorial page), and I am getting gforth added
+to this list, as NeHe has done an excellent job in developing an easy
+to follow sequence in learning how to use OpenGL.
+
+The code that this conversion is performed from is not the original
+Visual C++ code that NeHe (and others) wrote, but from the code that
+Ti Leggett converted for use with Linux/SDL.  This made converting
+the code to gforth extremely fast (and mostly painless, as I did not
+have to puzzle through what all those Windows functions were trying
+to do).
+
+For those wanting to compare these gforth implementations of the
+OpenGL code to the original, download Ti's code, extract the file to
+a directory, go to that directory in a terminal window, type 'make'
+and then execute the code.  I think gforth performs very favorably in
+comparision to the original C code versions.
+
+---[ Flame Retardant ]-----------------------------------------------
+
+For the Forth programming purists - yes, these will be conversions of
+C code to Forth.  This has been done specifically so that you will be
+able to follow the code flow in NeHe's tutorial texts. However, once
+you have learned what is required to do OpenGL operations, you are
+free to perform all the optimizations and tricks in your repertoire
+to make your programs "truly" Forth code.
+
+---[ Acknowledgments ]-----------------------------------------------
+
+I would like to thank Jeff Molofee for putting the NeHe tutorial
+lessons together, and Ti Leggett for all his work in converting them
+for use with Linux/SDL - as a result of which each gforth conversion
+took took less than an hour (including the debugging).
+
+And to Anton Ertl, for helping explain some of the features (quirks)
+of gforth, as I go deeper into some of the code.
+
+---[ Scope of this text ]--------------------------------------------
+
+I am not planning on re-doing NeHe's tutorials, as he has done an
+excellent job explaining how to work with OpenGL. However, there will
+be sections of the Forth code that will need to be explained in more
+detail.
+
+So, to start off, I highly recommend that you go to NeHe's website,
+and read his tutorial for Lesson 01 - Setting up an OpenGL window.
+
+---[ Lesson 01 - Base Code Framework ]-------------------------------
+
+The two lesson files, <opengl-lesson01.fs> and <opengllib-1.01.fs>,
+contain what NeHe refers to as his Base Code, which gives a framework
+within which we can construct OpenGL programs, and frees you from
+worrying about all of the basic stuff right from the start. It will
+allow you to give your attention to the important stuff - like
+figuring out how to get your OpenGL code to blend, fade, backlight,
+use textures, etc, etc.
+
+Since the code is already explained in NeHe's tutorial, this section
+will describe the basic outline of the functions for the Base Code.
+
+This tutorial consists of the following files:
+
+  opengl-lesson01.fs    Lesson 1 base code framework
+  opengllib-1.01.fs     OpenGL graphics code framework
+
+  mini-opengl-1.01.fs   OpenGL libcc interface functions
+  glconstants.fs        OpenGL constants definitions
+
+  mini-sdl-1.00.fs      SDL libcc interface functions
+  sdlconstants.fs       SDL constants definitions
+  sdlkeysym.fs          SDL keyboard definitions
+
+The last four files listed,
+
+  glconstants.fs mini-sdl-1.00.fs sdlconstants.fs sdlkeysym.fs
+
+are going to be the same for each tutorial, so new tutorials that are
+posted to comp.lang.forth will consist of the files,
+
+  opengl-lesson01.fs
+  opengllib-1.01.fs
+  mini-opengl-1.01.fs
+
+as the code changes will only be made to them.  The posting of the
+Lesson 01 code will include all of these files.
+
+We will start off with the file opengl-lesson01.fs, which contains
+the Base Code framework.
+
+The first section of the file defines a basic set of flags and
+variables:
+
+  \ ---[ opengl-exit-flag ]------------------------------------------
+  \ Boolean flag set by HandleKeyPress if the ESC key is pressed.
+  \ Will be used in a begin..while..repeat loop in the main function.
+
+  FALSE value opengl-exit-flag
+
+  \ ---[ screen ]----------------------------------------------------
+  \ Pointer for working SDL surface
+
+  0 value screen
+
+  \ ---[ Screen Dimensions ]-----------------------------------------
+  \ These specify the size/depth of the SDL display surface
+
+  640 constant screen-width
+  480 constant screen-height
+  16  constant screen-bpp
+
+<opengl-exit-flag> is set by the keyboard handling function when an
+ESC keypress has been detected, and this will cause the lesson code
+to exit, returning command to the terminal window (in Linux).
+
+<screen> is a pointer to the currently active SDL surface. This has
+been created as a VALUE, since it has to be changed during program
+execution.
+
+I use VALUEs a lot more than VARIABLEs, as I prefer them in most
+cases.  In the places where a VARIABLE has been defined, it will most
+likely be due to an OpenGL function requiring an address at which to
+store data to in the gforth memory map.
+
+The next three constants define the physical size and color depth of
+the display surface that is to be opened. The current settings are
+used to match NeHe's original code.
+
+I have added some support routines to help with parts of the code:
+
+  : zprint   { *str -- }
+  : zstring  ( *str len -- *str )
+  : SF,      ( r -- )
+
+<zprint> outputs a zero-delimited (C-type) string to the terminal.
+
+<zstring> converts a Forth-type string to a zero-delimited string.
+This is required because any SDL or OpenGL function that requires a
+string parameter expects it to be in this format. To facilitate this,
+you must add an extra character to the string, which <zstring> will
+convert to a NULL (0) value. I prefer to add the character "0" to the
+end of my strings, as this gives a visual verification of the end of
+the string to be converted by <zstring>.
+
+<SF,> stores 32-bit floating point values into the dictionary. This
+is required as (most) SDL and OpenGL functions want 32-bit floats,
+especially when the definition in the sdl.h or gl.h header files say
+that the parameter is defined as a <float> type. The normal gforth
+floating point value is 64-bits.
+
+At this point, we load the opengllib-1.xx.fs file. The <xx> indicates
+which tutorial the file was written for, and will sequentially
+increase for each new tutorial in this series.
+
+The opengllib-1.xx.fs file also loads the following files:
+
+  mini-opengl-1.xx.fs   OpenGL libcc interface functions
+  +- glconstants.fs     OpenGL constants definitions
+
+  mini-sdl-1.00.fs      SDL libcc interface functions
+  +- sdlconstants.fs    SDL constants definitions
+  sdlkeysym.fs          SDL keyboard definitions
+
+The following functions are used to access the video system, so as to
+optimize the settings for the best (fastest) video mode:
+
+<Initialize-SDL>
+
+Activates the SDL subsystems.
+
+<Get-Video-Info>
+
+Accesses the video hardware, filling an array with information which
+is used by the following functions:
+
+<Compile-Video-Flags>
+
+Compiles a flag that is passed to the video initialization function
+when we create an SDL surface, specifying a number of characteristics
+we want our display surface to have.
+
+<Check-HW-Surfaces>
+
+Adds a flag value as to whether hardware or software surfaces are to
+be used.  Hardware surfaces are preferred.
+
+<Check-HW-Blits>
+
+Sets a flag if the system is capable of performing hardware to
+hardware blitting, which uses the video card to transfer data much
+faster than the CPU can.
+
+<Init-Double-Buffering>
+
+Sets up the use of double buffers.
+
+<Init-Video>
+
+Attempts to initialize and create an SDL surface. On an error, the
+program will exit and drop you back to the terminal.
+
+<Init-Caption>
+
+Sets a title string on the display window created by the <Init-Video>
+function.
+
+<ResizeWindow>
+
+Resets our viewport, especially necessary after the display window
+has been resized during program execution.
+
+<Help-Msg>
+
+Displays the current keyboard functions to the terminal.
+
+<lessonxx>
+
+The main program loop for the tutorial.
+
+---[ mini-sdl-1.00.fs ]----------------------------------------------
+
+The mini-sdl-1.00.fs file contains the libcc interface code to access
+the SDL libraries.  In this case, it contains a really basic subset
+of the available SDL functions - only fifteen are defined.
+
+It also includes all of the SDL structure definitions for gforth.
+
+The sdlconstants.fs and sdlkeysym.fs files contain the constants and
+flags definitions for the SDL systems.
+
+---[ mini-opengl-1.xx.fs ]-------------------------------------------
+
+The mini-opengl-1.xx.fs file contains the libcc interface code to
+access the OpenGL functions that are used in each lesson.
+
+With each new lesson, this file will have the new definitions added
+to it, so the latest file can be used with all previous lessons as
+well.
+
+---[ libcc Interface ]-----------------------------------------------
+
+The libcc interface is the method that has been implemented in gforth
+to allow it to link external C libraries for use with gforth.
+
+Basically, in the libcc inteface definitions file, all of the entries
+are processed and written to a file in the ~/.gforth/libcc-named
+directory.
+
+First, we define the name of the libcc library to create:
+
+  c-library mini_opengl_lib
+
+Next, we specify the C library file(s) we want to access:
+
+  s" GL" add-lib
+  s" GLU" add-lib
+
+If there are any specific header files we need to use, add them next:
+
+  \c #if defined(__APPLE__) && defined(__MACH__)
+  \c      #include <OpenGL/gl.h>
+  \c      #include <OpenGL/glu.h>
+  \c #else
+  \c      #include <GL/gl.h>
+  \c      #include <GL/glu.h>
+  \c #endif
+
+(The \c command copies the rest of the line verbatim.)
+
+Now we define each function, by telling c-function the name of the
+gforth dictionary entry to create, the name of the C library function
+to link to it, and the parameters required for the C function:
+
+  \ Initial Entries for Lesson 01
+  c-function gl-clear            glClear                    n -- void
+  c-function gl-clear-color      glClearColor         r r r r -- void
+  c-function gl-clear-depth      glClearDepth               r -- void
+  c-function gl-enable           glEnable                   n -- void
+  c-function gl-depth-func       glDepthFunc                n -- void
+  c-function gl-hint             glHint                   n n -- void
+  c-function gl-load-identity    glLoadIdentity               -- void
+  c-function gl-matrix-mode      glMatrixMode               n -- void
+  c-function gl-shade-model      glShadeModel               n -- void
+  c-function gl-viewport         glViewport           n n n n -- void
+  c-function glu-perspective     gluPerspective       r r r r -- void
+
+  end-c-library
+
+The available parameters that can be passed/returned to/from a C
+library function are:
+
+  <a>    indicates an address pointer
+  <d>    indicates a 64-bit integer value
+  <n>    indicates a 32-bit integer value
+  <r>    indicates a 32-bit float value (but also works for 64-bit)
+  <void> indicates there is no return value from the function
+
+The gcc compiler is then called, and the resulting file is then
+linked to the gforth system.
+
+---[ libcc Quirks ]--------------------------------------------------
+
+The gforth system does not have a mechanism in place to unlink libcc
+code that has been created and linked during the compile/run cycle,
+so when changes are made to the libcc interface, like adding another
+OpenGL definition, you will have to exit from gforth before compiling
+the new version of the libcc interface source code.
+
+I am speaking specifically of the code in the mini-opengl-1.xx.fs
+file, not in the other source files.
+
+---[ Lesson 01 - Setting up an OpenGL window ]-----------------------
+
+The "actual" tutorial code is in the opengllib-1.xx.fs file. We start
+by loading in the libcc interface files that allow gforth to access
+the SDL and OpenGL libraries:
+
+  require mini-opengl-1.01.fs
+  require mini-sdl-1.00.fs
+  require sdlkeysym.fs
+
+(The <mini-opengl-1.01.fs> file needs to be loaded *before* the
+<mini-sdl-1.00.fs> file gets loaded.)
+
+<mini-sdl-1.00.fs> also loads in the <sdlconstants.fs> file, and
+<mini-opengl-1.01.fs> loads in the <glconstants.fs> file, which are
+the constants definitions for the various flags these libraries need.
+
+<sdlkeysym.fs> defines the keyboard constants for the SDL system.
+
+The tutorial code is broken into the following functions (for this
+Lesson):
+
+ : HandleKeyPress              ( &event -- )
+ : InitGL                      ( -- boolean )
+ : ShutDown                    ( -- )
+ : Reset-FPS-Counter           ( -- )
+ : Display-FPS                 ( -- )
+ : DrawGLScene                 ( -- boolean )
+
+<HandleKeyPress> processes an SDL keyboard event, and performs one
+of the specified actions if one of the specifically defined keys has
+been pressed - in this case, either ESC or F1 will do something. All
+other keypresses are ignored (although Alt-F4 will also cause the
+program to end).
+
+<InitGL> initializes specific OpenGL characteristics which we want
+the program to be able to utilize.
+
+<ShutDown> resets the opengl-exit-flag (for if you want to run the
+program again prior to re-compilation), and shuts down the SDL system
+prior to the program ending.
+
+<Reset-FPS-Counter> initializes the FPS counter to the current timer
+ticks.
+
+<Display-FPS> displays the FPS count to the terminal.
+
+<DrawGLScene> performs the actual OpenGL functions.  It clears the
+surface display, sets up the projections matrices, displays any of
+the graphics that may have been defined, and then swaps the work
+buffer to the display buffer (the screen). It then displays the FPS
+count to the terminal.  It does this each time it is called from the
+main <lesson01> function.
+
+---[ Program Operation ]---------------------------------------------
+
+In this tutorial, since we simply created a display window but did
+not put anything on it to see, we have a blank (black) window with
+a title.
+
+The program will now loop - if you keep the mouse pointer inside of
+the display window - and update the FPS count in the terminal, until
+you press either F1 to toggle between windowed and fullscreen modes,
+drag the corners/sides of the window around to change its size, or
+press the ESC key to exit the program.
+
+---[ Wrapping Up ]---------------------------------------------------
+
+While this program does not appear to do a lot, it gives us the basic
+framework which all of the following tutorial lessons will follow.
+
+The archives posted to the Taygeta Forth Archives, and the files that
+are linked from the NeHe tutorials pages will contain all of the
+files for each lesson.  From Lesson 6 on, most of the tutorials will
+also have a data directory, so you will be needing to download the
+archive file to get the required data files.
+
+Next up: Lesson 2 - Your First Polygon
+
+----------------------------------------------------[End Lesson01]---
+

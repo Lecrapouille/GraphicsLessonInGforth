@@ -1,0 +1,261 @@
+---[ gforth: OpenGL Graphics Lesson 24 ]--------------[05/01/2011]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson24.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 24 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+An addition to the mini-sdl libcc interface is the SDL_image library
+to allow access to multiple image formats, including the .TGA files
+that Jeff uses in this Lesson. This means that the previous libcc
+interface file, posted back in Lesson 6, is now replaced with:
+
+        mini-sdl-1.02.fs
+
+and is, as usual, backwards compatible with all previous Lessons.
+
+I have added a selection of the SDL_image functions for those who may
+wish to experiment beyond .TGA and .BMP files in their programs.
+Reference the SDL_image documentation for further information on this
+library package.
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-scissor ( x y width height -- )
+
+    Defines the scissor box
+
+    Parameters <x>, <y>, <width> and <height> are integer values.
+
+      x,y: Specify the lower left corner of the scissor box.
+          Initially (0, 0).
+
+      width, height: Specify the width and height of the scissor box.
+          When a GL context is first attached to a window, width and
+          height are set to the dimensions of that window.
+
+---[ Discussion ]----------------------------------------------------
+
+This is another one of those Lessons that had a problem with getting
+the data displayed correctly to the display window.
+
+Due to the orthographic orientation of the OpenGL display window,
+where the 0,0 location is at the bottom left corner of the window,
+the font data from the image file would only display upside down.
+
+One method of correcting this problem would be to change the call to
+the gl-ortho function in ResizeWindow, but that would require changes
+to every line that puts something onto the display screen.
+
+The method I chose to use was to reverse the order of the lines in
+the image file that made up each of the rows of characters. I did NOT
+reverse the entire image - just the ordering of the lines.
+
+I will attempt to describe this a little more visually as follows:
+
+The font.tga file is a 256x256x32 image file that contains our font
+character set in a 16x16 matrix, with each character being made up
+of a 16x16 array of pixels.
+
+Font:   0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+        0123456789ABCDEF
+
+Each of these 16 rows is made up of 16 lines, ordered basically as:
+
+Character row 0:
+
+Line  0: 0000000000000000000000000000000000000000000000000000000000
+Line  1: 1111111111111111111111111111111111111111111111111111111111
+Line  2: 2222222222222222222222222222222222222222222222222222222222
+Line  3: 3333333333333333333333333333333333333333333333333333333333
+Line  4: 4444444444444444444444444444444444444444444444444444444444
+Line  5: 5555555555555555555555555555555555555555555555555555555555
+Line  6: 6666666666666666666666666666666666666666666666666666666666
+Line  7: 7777777777777777777777777777777777777777777777777777777777
+Line  8: 8888888888888888888888888888888888888888888888888888888888
+Line  9: 9999999999999999999999999999999999999999999999999999999999
+Line 10: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Line 11: BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Line 12: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+Line 13: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+Line 14: EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+Line 15: FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+Followed by character row 1:
+
+Line 16: 0000000000000000000000000000000000000000000000000000000000
+Line 17: 1111111111111111111111111111111111111111111111111111111111
+Line 18: 2222222222222222222222222222222222222222222222222222222222
+Line 19: 3333333333333333333333333333333333333333333333333333333333
+Line 20: 4444444444444444444444444444444444444444444444444444444444
+Line 21: 5555555555555555555555555555555555555555555555555555555555
+Line 22: 6666666666666666666666666666666666666666666666666666666666
+Line 23: 7777777777777777777777777777777777777777777777777777777777
+Line 24: 8888888888888888888888888888888888888888888888888888888888
+Line 25: 9999999999999999999999999999999999999999999999999999999999
+Line 26: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Line 27: BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Line 28: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+Line 29: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+Line 30: EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+Line 31: FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
+Followed by character rows 2 thru 15
+
+When processed by Flip-Characters, these would be changed to:
+
+Character row 0:
+
+Line  0: FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+Line  1: EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+Line  2: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+Line  3: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+Line  4: BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Line  5: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Line  6: 9999999999999999999999999999999999999999999999999999999999
+Line  7: 8888888888888888888888888888888888888888888888888888888888
+Line  8: 7777777777777777777777777777777777777777777777777777777777
+Line  9: 6666666666666666666666666666666666666666666666666666666666
+Line 10: 5555555555555555555555555555555555555555555555555555555555
+Line 11: 4444444444444444444444444444444444444444444444444444444444
+Line 12: 3333333333333333333333333333333333333333333333333333333333
+Line 13: 2222222222222222222222222222222222222222222222222222222222
+Line 14: 1111111111111111111111111111111111111111111111111111111111
+Line 15: 0000000000000000000000000000000000000000000000000000000000
+
+Followed by character row 1:
+
+Line 16: FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+Line 17: EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+Line 18: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+Line 19: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+Line 20: BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Line 21: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Line 22: 9999999999999999999999999999999999999999999999999999999999
+Line 23: 8888888888888888888888888888888888888888888888888888888888
+Line 24: 7777777777777777777777777777777777777777777777777777777777
+Line 25: 6666666666666666666666666666666666666666666666666666666666
+Line 26: 5555555555555555555555555555555555555555555555555555555555
+Line 27: 4444444444444444444444444444444444444444444444444444444444
+Line 28: 3333333333333333333333333333333333333333333333333333333333
+Line 29: 2222222222222222222222222222222222222222222222222222222222
+Line 30: 1111111111111111111111111111111111111111111111111111111111
+Line 31: 0000000000000000000000000000000000000000000000000000000000
+
+Followed by character rows 2 thru 15
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+Another way to visualize this is to look at a window with horizontal
+mini-blinds.  When you have them all the way down, that would
+represent the original format of the font.tga file.  When you spin
+the bar causing them to open, and then keep going, causing them to
+move all the way up, then this represents what we need to acomplish
+with the Flip-Characters function.
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+Now, the original C version that Dark Alloy coded does not have this
+problem, so it appears to be something that I have missed as yet in
+my exploration of OpenGL programming.  If/when I find an answer, I
+will post an update on this problem.
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+four files to that directory:
+
+        opengl-lesson24.fs      - Code Addendum 1
+        opengllib-1.24.fs       - Code Addendum 2
+        mini-opengl-1.24.fs     - Code Addendum 3
+        mini-sdl-1.02.fs        - Code Addendum 4
+
+This Lesson uses an image file which you can retrieve from the NeHe
+Lesson 24 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=24
+
+or from the opengl-lesson24.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+Optionally, you can use the font.bmp file from Lesson 17, and by
+changing the corresponding line in the LoadGLTextures function in the
+opengllib-1.24.fs file (line 167):
+
+  s" data/font.tga0" 0 load-image if
+
+to
+
+  s" data/font.bmp0" 0 load-image if
+
+For the files from the opengl-lesson24.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.24.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson24.fs
+        lesson24
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson24.fs
+        lesson24
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 25 - Morphing, loading objects
+
+----------------------------------------------------[End Lesson24]---
+

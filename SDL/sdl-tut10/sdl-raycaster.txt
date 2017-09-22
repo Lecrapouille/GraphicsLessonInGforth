@@ -1,0 +1,352 @@
+---[ gforth: SDL/OpenGL Graphics Part X ]-------------[05/02/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut10.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+I have been looking at implementing a 3D Raycasting Engine, along the
+lines of the Wolf3D engine (conceptually) created by id software for
+their classic game.
+
+Over the 18 years since it was released in 1992, a *lot* of people
+have coded various types of Wolf3D-clones.
+
+This was made a lot easier when id Software released the source code
+for the Wolf3D game (as well as DOOM and Quake), so anyone interested
+got a chance to see how their favorite game was actually coded.
+
+But - as far as I can tell - none of these have been done in any
+version of Forth.
+
+---[ RayCasting 1 ]--------------------------------------------------
+
+Ray-casting is a technique that transforms a limited form of data (a
+very simplified map or floor plan) into a 3D projection by tracing
+rays from the view point into the viewing volume (LaMothe 942).
+
+Ray casting is fast because it utilizes some geometric constraints.
+In most cases, walls are always at 90 degrees angle with the floor.
+(Note that we are not talking about the angle between walls and
+another walls, but the angle between walls and floor.)
+
+Thus, a limitation that almost exists on a raycasting game is that
+the viewpoint cannot be rotated along the Z axis. If this is allowed,
+then walls could be slanted and the benefit of drawing in vertical
+slices will be lost. This inability to rotate along the Z axis is one
+of the reason of why the raycasting environment is not regarded as a
+true three dimensional environment.
+
+---[ Implementing Raycasting ]---------------------------------------
+
+The basic idea of raycasting is as follows: the map is a 2D square
+grid, and each square can either be 0 (= no wall), or a positive
+value (= a wall with a certain color or texture).
+
+For every X coordinate of the screen (i.e. for every vertical slice
+of the screen), send out a ray that starts at the player location and
+with a direction that depends on both the player's looking direction,
+and the x-coordinate of the screen. Then, let this ray move forward
+on the 2D map, until it hits a map square that is a wall. If it hits
+a wall, calculate the distance of this hit point to the player, and
+use this distance to calculate how high this wall has to be drawn on
+the screen: the further away the wall, the smaller it is on the
+screen, and the closer, the higher it appears to be.
+
+These are all 2D calculations.
+
+To find the first wall that a ray encounters on it's way, you have to
+let it start at the player's position, and then all the time, check
+whether or not the ray is inside a wall. If it is inside a wall (hit)
+then the loop can stop, calculate the distance, and draw the wall
+with the correct height. If the ray position is not in a wall, you
+have to trace it further: add a certain value to it's position, in
+the direction of this ray, and for this new position, again check if
+it is inside a wall or not. Keep doing this until finally a wall is
+hit.
+
+A human can immediately see where the ray hits the wall, but it is
+impossible to find which square the ray hits immediately with a
+single formula, because a computer can only check a finite number of
+positions on the ray. Many raycasters add a constant value to the ray
+in each step, but then there is a chance that it may miss a wall.
+
+The more positions checked, the smaller the chance that the computer
+will not detect a wall, but more calculations are needed.
+
+For infinite precision with this method, an infinitely small step
+size, and thus an infinite number of calculations would be needed.
+
+A method that requires very few calculations, and that will detect
+every wall, is to check at every side of a wall the ray will
+encounter, giving each square a width of 1, so each side of a wall is
+an integer value and the places in between have a value after the
+point.
+
+An algorithm is used that is based on DDA (Digital Differential
+Analysis). DDA is a fast algorithm typically used on square grids to
+find which squares a line hits (for example - to draw a line on a
+screen, which is a grid of square pixels). So we can also use it to
+find which squares of the map our ray hits, and stop the algorithm
+once a square (that is a wall) is hit.
+
+Some raytracers work with Euclidean angles to represent the direction
+of the player and the rays, and determine the Field Of View with
+another angle. It can be easier to work with vectors and a camera
+instead: the position of the player is always a vector (an x/y
+coordinate), and make the direction a vector as well: so the
+direction is now determinated by two values: the x and y coordinate
+of the direction. A direction vector can be seen as follows: if you
+draw a line in the direction the player looks, through the position
+of the player, then every point of the line is the sum of the
+position of the player, and a multiple of the direction vector. The
+length of a direction vector doesn't really matter, only it's
+direction. Multiplying x and y by the same value changes the length
+but keeps the same direction.
+
+This method with vectors also requires an extra vector, which is the
+camera plane vector. In a true 3D engine, there is also a camera
+plane, and there this plane is really a 3D plane so two vectors
+(u and v) are required to represent it. Raycasting happens in a 2D
+map however, so here the camera plane isn't really a plane, but a
+line, and is represented with a single vector. The camera plane
+should always be perpendicular on the direction vector. The camera
+plane represents the surface of the computer screen, while the
+direction vector is perpendicular on it and points inside the screen.
+The position of the player, which is a single point, is a point in
+front of the camera plane. A certain ray of a certain x-coordinate of
+the screen, is then the ray that starts at this player position, and
+goes through that position on the screen or thus the camera plane.
+
+The map of the world is a 2D array, where each value represents a
+square. If the value is 0, that square represents an empty floor
+space, and if the value is higher than 0, it represents a wall with
+a certain color or texture.
+
+The map declared here is 24x24 squares, code. All the zero's in the
+grid are empty space, so you see a very big room, with a wall around
+it (the 1s), a small room inside it (the 2s), a few pillars (the 3s)
+and a corridor with a room (the 4s):
+
+                      111111111111111111111111
+                      100000000000000000000001
+                      100000000000000000000001
+                      100000000000000000000001
+                      100000222220000303030001
+                      100000200020000000000001
+                      100000200020000300030001
+                      100000200020000000000001
+                      100000220220000303030001
+                      100000000000000000000001
+                      100000000000000000000001
+                      100000000000000000000001
+                      100000000000000000000001
+                      100000000000000000000001
+                      100000000000000000000001
+                      100000000000000000000001
+                      144444444000000000000001
+                      140400004000000000000001
+                      140000504000000000000001
+                      140400004000000000000001
+                      140444444000000000000001
+                      140000000000000000000001
+                      144444444000000000000001
+                      111111111111111111111111
+
+---[ Program Flow ]--------------------------------------------------
+
+The raycasting loop goes through every x, so there is a calculation
+for every vertical slice of the display surface.
+
+The ray position (RayPos) is initially set to the position of the
+player (r.PX, r.PY).
+
+r.CameraX is the x-coordinate on the camera plane that the current 
+x-coordinate of the screen represents. The right side of the screen
+will get coordinate 1, the center of the screen gets coordinate 0,
+and the left side of the screen gets coordinate -1. From this, the
+direction of the ray can be calculated as was explained earlier: as
+the sum of the direction vector, and a part of the plane vector. This
+has to be done both for the x and y coordinates of the vector (since
+adding two vectors is adding their x-coordinates, and adding their
+y-coordinates).
+
+r.MapX and r.MapY represent the current square of the map the ray is
+in. The ray position itself has info about which square of the map we
+are in, and where in that square we are, but r.MapX and r.MapY are
+only the coordinates of that square.
+
+r.SideDX and r.SideDY are initially the distance the ray has to
+travel from it's start position to the first x-side and the first
+y-side. Later in the code their meaning will slightly change.
+
+r.DeltaDX and r.DeltaDY are the distance the ray has to travel to go
+from one x-side to the next x-side, or from one y-side to the next
+y-side.
+
+The DDA algorithm will always jump exactly one square each loop,
+either a square in the x-direction, or a square in the y-direction.
+If it has to go in the negative or positive x-direction, and the
+negative or positive y-direction, will depend on the direction of the
+ray, and this fact will be stored in r.StepX and r.StepY. Those
+variables are always either -1 or +1.
+
+Finally, i.hit is used to determinate whether or not the coming loop
+may be ended, and the i.side flag will be set if an x-side or a
+y-side of a wall was hit. If an x-side was hit, i.side is set to 0,
+if an y-side was hit, i.side will be 1. By x-side and y-side, we mean
+the lines of the grid that are the borders between two squares.
+
+Before the DDA can start, r.StepX, r.StepY, r.SideDX and r.SideDY
+have to be calculated.
+
+The x/y components determine the setting of the r.StepX and r.StepY
+variables:
+
+        -1 - if the ray direction has a negative x/y component
+        +1 - if the ray direction has a positive x/y component
+         0 - the step values are not used
+         
+If the ray direction has a negative x-component, r.SideDX is the
+distance from the ray starting position to the first side to the
+left.
+
+If the ray direction has a positive x-component, the first side to
+the right is used instead.
+
+The same goes for the y-component, but now with the first side above
+or below the position.
+
+For these values, the integer value of r.MapX is used and the real
+position subtracted from it, and 1.0 is added in some of the cases
+depending if the side to the left or right, of the top or the bottom
+is used. Then we get the perpendicular distance to this side, and
+multiply it with r.DeltaDX or r.DeltaDY to get the real oblique
+distance.
+
+The DDA now starts. It is a loop that increments the ray with one
+square every time, until a wall is hit. Each time, either it jumps a
+square in the x-direction (with r.StepX) or a square in the
+y-direction (with r.StepY), it always jumps 1 square at once. If the
+ray's direction would be the x-direction, the loop will only have to
+jump a square in the x-direction every time, because the ray will
+never change it's y-direction. If the ray is a bit sloped to the
+y-direction, then every so many jumps in the x-direction, the ray
+will have to jump one square in the y-direction. If the ray is
+exactly the y-direction, it never has to jump in the x-direction.
+
+r.SideDX and r.SideDY get incremented with r.DeltaDX with every jump
+in their direction, and r.MapX and r.MapY get incremented with
+r.StepX and r.StepY.
+
+When the ray has hit a wall, the loop ends, and then we'll know
+whether an x-side or y-side of a wall was hit in the flag i.side,
+and which wall was hit with r.MapX and r.MapY. We won't know exactly
+where the wall was hit however, but that's not needed in this case
+because we won't use textured walls for now.
+
+After the DDA is done, we have to calculate the distance of the ray
+to the wall, so that we can calculate how high the wall has to be
+drawn after this. We don't use the oblique distance however, but
+instead only the distance perpendicular to the camera plane
+(projected on the camera direction), to avoid the fisheye effect. The
+fisheye effect is an effect you see if you use the real distance,
+where all the walls become rounded, and can make you sick if you
+rotate.
+
+Note that this part of the code isn't "fisheye correction", such a
+correction isn't needed for the method of raycasting used here, the
+fisheye effect is simply avoided by the way the distance is
+calculated here. It's even easier to calculate this perpendicular
+distance than the real distance, we don't even need to know the exact
+location where the wall was hit.
+
+First of all, (1-r.StepX)/2 is 1 if r.StepX = -1, and 0 if r.StepX is
++1, this is needed because we need to add 1 to the length when
+r.RayDX < 0, this is for the same reason why 1.0 was added to the
+initial value of r.SideDX in one case but not in the other.
+
+The distance is then calculated as follows: if an x-side is hit,
+r.MapX-r.RayPX+(1-r.StepX)/2) is the number of squares the ray has
+crossed in X direction. If the ray is perpendicular on the X side,
+this is the correct value already, but because the direction of the
+ray is different most of the times, it's real perpendicular distance
+will be larger, so we divide it through the X coordinate of the
+RayDir vector.
+
+Something similar is done in case an y-side is hit. The calculated
+distance is never negative, since r.MapX-r.RayPX will be negative
+only if r.RayDX is negative, and we divide these two through each
+other.
+
+Out of the calculated distance, calculate the height of the line that
+has to be drawn on screen: this is the inverse of r.WallDist, and
+then multiplied by window-screenh, the height in pixels of the
+screen, to bring it to pixel coordinates. You can of course also
+multiply it with another value, for example 2*window-screenh, if you
+want to walls to be higher or lower. The value of window-screenh will
+make the walls look like cubes with equal height, width and depth,
+while large values will create higher boxes (depending on your
+monitor).
+
+Then out of this r.LineHeight (which is the height of the vertical
+line that should be drawn), the start and end position of where we
+should really draw are calculated. The center of the wall should be
+at the center of the screen, and if these points lie outside the
+screen, they are clipped to 0 or window-screenh-1.
+
+Finally, depending on what number the wall that was hit has, a color
+is chosen. If a y-side was hit, the color is made darker, this gives
+a nicer effect. And then the vertical line is drawn.
+
+This ends the raycasting loop, after it has done this for every X.
+
+Process-Keys is now called to check the keyboard for any activity.
+
+The FPS count is calculated and added to the display surface.
+
+The display surface is now blitted to the screen, and the surface is
+cleared for the next frame to be worked on.
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+On my system, 320x200x32 mode is averaging about 150 FPS; 640x480x32
+mode is averaging about 70 FPS, and 1024x768x32 mode is averaging
+about 30 FPS in a windowed display.  I have not tested full screen
+mode for any resolution.
+
+(That is, assuming that I have the FPS code anywhere near correct :)
+
+YMMV (your mileage may vary).
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+This code is not optimized for speed.  It is meant to be viewed as a
+learning tool - not as a practical game (or virtual world) engine.
+
+I have refrained from using any CPU-specific machine code, so nothing
+has been coded in assembly language, to let the code be executed on
+any gforth/SDL system (hopefully).
+
+---[ Wrapping Up ]---------------------------------------------------
+
+The next iteration of this engine is to replace the solid filled
+colors with textured patterns, both algorithm generated as well as
+from image files (jpg, pcx, etc).
+
+Until later.
+------------------------------------------------[End RayCasting-1]---

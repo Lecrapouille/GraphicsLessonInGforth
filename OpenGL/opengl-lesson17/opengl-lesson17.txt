@@ -1,0 +1,167 @@
+---[ gforth: OpenGL Graphics Lesson 17 ]--------------[07/31/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson17.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 17 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-ortho ( left right bottom top zNear zFar -- )
+
+    Multiply the current matrix with an orthographic matrix
+
+    Parameters are all 32-bit floating point values.
+
+      left, right: Specify the coordinates for the left and right
+          vertical clipping planes.
+
+      bottom, top: Specify the coordinates for the bottom and top
+          horizontal clipping planes.
+
+      zNear, zFar: Specify the distances to the nearer and farther
+          depth clipping planes. These values are negative if the
+          plane is to be behind the viewer.
+
+    (In gforth, as these are passed by value, there is no conversion
+    necessary to make these values into 32-bit floats from the normal
+    gforth 64-bit floating point values.)
+
+gl-pop-matrix ( -- )
+gl-push-matrix ( -- )
+
+    Push and pop the current matrix stack.
+
+    Parameters: none.
+
+    Description:  There is a stack of matrices for each of the matrix
+    modes. In GL_MODELVIEW mode, the stack depth is at least 32. In
+    the other modes, GL_COLOR, const(PROJECTION), and GL_TEXTURE, the
+    depth is at least 2. The current matrix in any mode is the matrix
+    on the top of the stack for that mode.
+
+    glPushMatrix pushes the current matrix stack down by one,
+    duplicating the current matrix. That is, after a glPushMatrix
+    call, the matrix on top of the stack is identical to the one
+    below it.
+
+    glPopMatrix pops the current matrix stack, replacing the current
+    matrix with the one below it on the stack.
+
+    Initially, each of the stacks contains one matrix, an identity
+    matrix.
+
+    It is an error to push a full matrix stack, or to pop a matrix
+    stack that contains only a single matrix. In either case, the
+    error flag is set and no other change is made to GL state.
+
+gl-translate-d ( x y z -- )
+
+    Multiply the current matrix by a translation matrix, using 64-bit
+    C/C++ floating point values.
+    
+    Parameters <x>, <y> and <z> are 64-bit floating point values.
+    
+    x/y/z: Specify the x, y, and z coordinates of a translation
+        vector.
+
+    (In gforth these are passed by value and there is no conversion
+    necessary as they are already in the required 64-bit format.)
+
+gl-vertex-2f ( x y -- )
+
+    Specify a vertex.
+    
+    Parameters <x> and <y> are 32-bit floating point values.
+
+      x/y: Specify the x,y coordinates of a vertex.    
+
+    (In gforth, as these are passed by value, there is no conversion
+    necessary to make these values into 32-bit floats from the normal
+    gforth 64-bit floating point values.)
+
+gl-vertex-2i ( x y -- )
+
+    Specify a vertex.
+    
+    Parameters <x> and <y> are integer values.
+
+      x/y: Specify the x,y coordinates of a vertex.    
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+three files to that directory:
+
+        opengl-lesson17.fs      - Code Addendum 1
+        opengllib-1.17.fs       - Code Addendum 2
+        mini-opengl-1.17.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson also uses two image files which you can retrieve from the
+NeHe Lesson 17 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=17
+
+or from the opengl-lesson17.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson17.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.17.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson17.fs
+        lesson17
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson17.fs
+        lesson17
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 18 - Quadrics
+
+----------------------------------------------------[End Lesson17]---
+

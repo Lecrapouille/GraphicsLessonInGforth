@@ -1,0 +1,342 @@
+---[ gforth: SDL/OpenGL Graphics Part II ]------------[02/07/2010]---
+
+                         by Timothy Trussell
+
+---[ System Requirements ]-------------------------------------------
+
+This series of columns on graphics programs requires the following:
+
+  1. gforth-0.7.0
+  2. SDL libraries
+  3. OpenGL libraries
+  4. An operating system capable of running both gforth and the
+     SDL/OpenGL systems.
+
+The code that is presented has been written and tested on a system
+running Ubuntu Linux v9.10, both on the main computer as well as in
+a Sun VirtualBox emulation running Ubuntu v9.10.
+
+Details on getting this system up and running are to be found in the
+first part of this series:
+
+                gforth: SDL/OpenGL Graphics Part I
+
+which has been posted to comp.lang.forth.
+
+This series of columns will be posted to the Taygeta Forth Archives, 
+thanks to the ongoing support of Dr. Everett Carter. The directory to
+find these is:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+I have already posted the modified versions of the two SDL/OpenGL
+demo programs - 3DDEMO and GLForth-r18 - as well as the first column
+in this series to that site. The demos can give you a sample of some 
+of the graphics now available to the gforth programmer.
+
+Again, thank you, Dr. Carter.
+
+---[ Where Are We ]--------------------------------------------------
+
+Although I will be posting the code addendums to comp.lang.forth, I
+would suggest downloading the .ZIP file from the Taygeta ftp site, as
+the archives will include the bitmap images that are too big to post
+to comp.lang.forth. Feel free to create your own and to change the 
+filename in the source to fit the image you will use.
+
+I would suggest creating a /forth directory in your home directory,
+and then extracting the .ZIP file to ~/forth with unzip.
+
+-- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --
+
+We are now ready to start coding SDL in our gforth programs.
+
+This column will have three code addendums attached to it:
+
+  1. sdl-tut02.fs    - the tutorial code for this column
+  2. sdl.fs          - the SDL library definition code
+  3. sdlconstants.fs - the SDL header file for gforth
+                       The header file will be the same for ALL of
+                       the SDL columns that I will be writing.
+
+The basic program flow is as follows:
+
+  1. Load SDL interface (when the .fs file is compiled)
+  2. Initialize the SDL systems and open output window
+  3. Load image file
+  4. Display image to output window
+  5. Pause for 10 seconds to allow viewing of the window
+  6. Release buffer memory
+  7. Shut down the SDL system and close the output window
+
+We start with loading in the SDL interface with:
+
+  require sdl.fs
+
+The structure of the interface code is:
+
+  1. Define the name of the library code file to be created:
+
+     c-library sdl_t02
+
+     To avoid complications, this should be a name that is made to be
+     unique to this program, as a sequence of files will be created
+     by both the libcc interface, and the gcc compiler.
+
+  2. Add the SDL library file to get the function references linked:
+     (This is the library that we added to the Ubuntu system in the
+      previous column, *not* the file we are about to have gcc make)
+
+     s" SDL" add-lib
+
+  3. Define the location of the include files for the gcc compiler:
+
+     \c #include <SDL/SDL.h>
+
+  4. Define the gforth word names, and what the SDL functions they
+     are to reference are named, as well as the parameter picture:
+
+     Example:
+
+       c-function sdl-init      SDL_Init        n -- n
+
+     Where:
+
+       sdl-init is the gforth word to be created
+       SDL_Init is the SDL function name
+       n -- n   specifies that an integer is passed on the stack, and
+                the function will return an integer value, which is
+                left on the gforth data stack
+
+     Note: The parameter picture is NOT a comment.  The libcc system
+           uses this to generate the correct parameter passing for
+           the gforth-to-c/c-to-gforth interface. Therefore, it is
+           also not optional. You will also need this for debugging
+           purposes.
+
+  5. End the library interface definitions section:
+
+     end-c-library
+
+When you want to add new SDL functions for gforth to access, this is
+the file that will be modified.  Reference the SDL .h files for the
+functions that can be added to gforth.
+
+When the 'end-c-library' line is processed, the libcc interface calls
+the gcc compiler to process the newly created sdl_t02.c file in the
+~/.gforth/libcc-named directory.  The following files will now be
+created:
+
+  /.gforth
+    /libcc-named
+      /.libs
+        sdl_t02.a
+        sdl_t02.la
+        sdl_t02.lai
+        sdl_t02.o
+        sdl_t02.so
+        sdl_t02.so.0
+        sdl_t02.so.0.0.0
+      sdl_t02.c                    <-- created by "c-library sdl_t01"
+      sdl_t02.la
+      sdl_t02.lo
+      sdl_t02.o
+
+---[Note]------------------------------------------------------------
+The .gforth directory is 'hidden' in the Ubuntu File Browser, unless
+you specifically toggle the View->Show Hidden Files box (or press
+CTRL-H).
+--------------------------------------------------------[End Note]---
+
+After compilation, libcc links the object files to the gforth system
+which now has those functions added to it's dictionary.
+
+  6. And finally, load in the SDL constants definitions:
+
+     include sdlconstants.fs
+
+---[Note]------------------------------------------------------------
+In the future columns on SDL/OpenGL, the sequence described above 
+will be followed for each library that we link in to gforth, so I 
+will not be covering this section again, other than to note what new 
+functions are being added for each column.
+--------------------------------------------------------[End Note]---
+
+Now that the SDL interface code has been compiled and added to the
+gforth system we are ready to process the rest of the source file.
+
+The first three words coded are utility functions.
+
+  Help-Message     ( -- )
+  Error-End        ( f addr n -- )
+  Terminate-String ( a n -- a )
+
+Help-Message displays information about the program, and is available
+from the command line after the sd-tut02.fs file has been compiled.
+
+Error-End is the error handler routine, thru which is passed the SDL
+return codes.  Generally, SDL returns a 0 value for success, and a
+non-zero (usually -1) value for failure.  Error-End checks this flag
+and if non-zero will shut down the SDL system, display the error
+message that was passed to it, and then exit gforth to the terminal
+window.
+
+Terminate-String converts a gforth string to a C/C++ type string that
+is terminated with a 0 byte value following the last character of the
+string.  To do this, an extra character needs to be appended to the
+string, which Terminate-String changes to a 0 value.
+
+Example:
+
+  s" gforth1.bmp0" Terminate-String
+
+The "0" string character at the end of the string will be changed to
+a 0 byte value, leaving the address of the string on the stack.
+
+The next two words allow us to create a graphics window to display
+the data from our program to, be it lines, pictures, video or what-
+have-you.
+
+InitGraph starts by initializing the SDL subsystems that we will be
+using:
+
+  : InitGraph ( -- )
+    SDL_INIT_VIDEO sdl-init                               \ start sdl		
+    0<> s" Unable to initialize SDL" Error-End
+
+In this case, we are only initializing the Video subsystem. The
+return code, along with an error message for if the initialization
+has failed, is sent to Error-End.
+
+On success (return code==0), we then attempt to open a graphics 
+window:
+
+    640 480 32 SDL_SWSURFACE sdl-set-video-mode       \ create window
+    dup 0< s" Unable to set video mode" Error-End
+
+We are specifying a window with the dimensions 640x480 with a color
+depth of 32-bits/pixel, and telling the SDL video system that we want
+to use a software buffer for the surface.
+
+The return code and error message is again passed thru Error-End, and
+on a successful initialization, we go on to:
+
+    to screen-surface                \ save pointer to screen surface
+
+which saves the pointer to the surface buffer for the graphics window
+to the VALUE screen-surface which we created in our data section.
+
+---[Note]------------------------------------------------------------
+Surfaces - what are they?
+
+In my previous columns, I used the concept of a double buffer to 
+describe the method of using a block of memory from the Forth Heap to 
+hold the image that was being created, and then to blit the entire 
+buffer to the video display memory during a Retrace cycle of the 
+monitor.
+
+The SDL system calls these double buffers 'surfaces', but the SDL
+system gives them a few more characteristics and requirements than I
+had with my double buffers.  I will cover these characteristics as we
+get to them in this series.
+
+For now, it is important to know that they have to be allocated - and
+that they then have to be de-allocated when you are ready to close
+the program down.
+--------------------------------------------------------[End Note]---
+
+The next step is to give the new graphics window a title.  For this,
+we need to pass a string to the SDL routine, which needs to be passed
+thru the Terminate-String function before getting to the Set Caption
+function call:
+
+  s" sdl-tut01 gforth demo0" Terminate-String NULL sdl-wm-set-caption 
+
+The NULL parameter is saying that we do not want to specify an icon
+to be used for this window.
+
+The next line turns off the mouse, should you move the mouse pointer
+over the display window while it is running:
+
+  SDL_DISABLE sdl-show-cursor drop     \ disappear mouse if in window
+
+Finally, we set a flag to state that we have opened a display window:
+
+  1 to in-graphics-mode
+
+This is used by the Error-End function, so that if a graphics window
+has been created, the program can close it down upon an error.
+
+The next word, CloseGraph, turns the mouse pointer back on:
+
+  : CloseGraph ( -- )
+    SDL_ENABLE sdl-show-cursor drop          \ turn the mouse back on
+
+shuts down the SDL subsystems (and frees the screen surface it had 
+created when the window was opened):
+
+    sdl-quit                                          \ graceful exit
+
+and finally resets the graphics flag to indicate that the graphics 
+window is no longer open:
+
+    0 to in-graphics-mode
+  ;
+
+Load-Picture loads a .BMP file into a new surface. The SDL function 
+sdl-loadbmp returns either a 0 (for failure in this case) or the 
+address pointer to the surface, which is then stored to a VALUE.  
+Again, the file name has to be zero-delimited, and we will modify the 
+return value for parsing thru Error-End.
+
+  : Load-Picture ( -- )
+    s" gforth1.bmp0" Terminate-String sdl-loadbmp
+    dup 0= s" Unable to load image file" Error-End
+    to image-surface                \ save pointer to picture surface
+  ;
+
+Show-Picture is used to display the .BMP image to the graphics window
+by calling the function sdl-blitsurface, which copies the image data
+from the buffer image-surface to the screen-surface buffer:
+
+  : Show-Picture ( -- )
+    image-surface NULL screen-surface NULL sdl-blitsurface drop
+
+The function sdl-flip then copies the screen-surface buffer to the 
+video memory of the graphics window:
+
+    screen-surface sdl-flip drop
+  ;
+
+Free-Picture is used to specifically release the memory that has been
+allocated for the image-surface buffer:
+
+  : Free-Picture ( -- )
+    image-surface sdl-freesurface        \ release memory for surface
+  ;
+
+Finally, we have the main demo word, which simply links all of these
+together.  After the image has been copied to the graphics window, we
+use the function sdl-delay to pause for (10000) milliseconds - 10 
+seconds in this case.  Then, we release the image-surface, and close 
+down the graphics engine.
+
+  : sdl-tut01 ( -- )
+    InitGraph                               \ rev the graphics engine
+    Load-Picture                          \ get the image into memory
+    Show-Picture                        \ let us view the masterpiece
+    10000 sdl-delay                      \ time for ooh's and aahhh's
+    Free-Picture                         \ clean up the system memory
+    CloseGraph                           \ leave the program politely
+  ;
+
+---[ Wrapping It Up ]------------------------------------------------
+
+I am finding that using the SDL system is extremely easy.  The only
+hard part is going thru the SDL documentation to figure out how the
+library functions are supposed to be used.  Implementing them in 
+gforth is very easy, once you have gotten the libraries installed for
+gforth to use.
+
+------------------------------------------[ End of sdl-tut02.txt ]---
+

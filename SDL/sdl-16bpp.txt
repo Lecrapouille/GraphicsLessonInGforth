@@ -1,0 +1,170 @@
+---[ SDL 16-bpp Pixel Demo ]--------------------------[04/05/2010]---
+
+                         by Timothy Trussell
+
+---------------------------------------------------------------------
+
+This is not part of my regular columns on SDL.  It was just a little
+by-product of research into getting 16-bpp color working with my
+sdl-basicfont code, which I figured ought to be done for the sake
+of completeness, since I had already finished getting the 8-bpp and
+24-/32-bpp colors working the way I wanted them.
+
+As is often the case, the result of this research replaced what I 
+had coded for these other three modes.
+
+The source of this code is from the Linux Journal article 4401, and
+is about converting the r/g/b elements of the pixel you want to use
+to their 16-bpp equivalent.
+
+While the original code from this article did not work for me, it
+*did* point me in the right direction of how to solve the problem
+of implementing 16-bpp color.
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+In 8-bpp, 24-bpp and 32-bpp modes, the r/g/b elements are all 8-bit
+values, but the 8-bit values have a range of 0..255 only for the 24-
+and 32-bpp modes.
+
+The 8-bpp mode restricts the range of each element to 0..63.
+
+Now, for reference, the 8-bpp mode gives us 256 colors to use.
+
+The 24-bpp mode gives us 16,777,216 colors.
+
+The 32-bpp mode is *supposed* to give us 4,294,967,296 colors, but
+in actuality, with the SDL system, we still only have access to the
+16,777,216 colors of the 24-bpp mode.  
+
+I know - you are feeling cheated. *Only* 16,777,216 colors to choose
+from.
+
+The extra 8-bits we have in the 32-bpp mode is used for the Alpha
+Blending aspect, which is used for a transparency feature.
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+Now we get to the 16-bpp mode.  The 16-bpp mode is capable of 65,536
+different colors. In this mode, we compress the three color values
+into a single 16-bit value.
+
+There are several different ways this data can be represented, but
+the way that the SDL system does it is by dividing the 16-bit value
+into three parts, with the Red component represented by 5 bits, the
+Green component by 6 bits, and the Blue component the last 5 bits.
+
+                          FEDCB A98765 43210 - bit #
+                          +---+ +----+ +---+
+                          11111 111111 11111
+                          +---+ +----+ +---+
+                           Red   Green  Blue
+
+The Green component gets 6 bits due to the fact that it has been
+determined that the human eye is receptive to more green shades than
+to the reds or blues.
+
+The Red and Blue components, with 5 bits, represent values of 0..31.
+
+The Green component, with 6 bits, represents values of 0..63.
+
+I have spent hours attempting to find existing 16-bpp tables on the
+internet that already had the color settings I wanted to use, but
+have been totally unsuccessful in finding any kind of information
+specifically for the 16-bpp modes.
+
+I did, however, find this nice little listing of 24-bpp colors, at:
+
+                http://www.endprod.com/colors/#x
+
+There are 568 colors listed here.
+
+A short extract of these, as an example:
+
+\ ----Name----          Hex Value       <R>     <G>     <B>
+s" accuprobe"	        $0A70050	167	0	80
+s" alice blue"	        $0F0F8FF	240	248	255
+s" antique white"	$0FAEBD7	250	235	215
+s" antique white 1"	$0FFEFDB	255	239	219
+s" antique white 2"	$0EEDFCC	238	223	204
+s" antique white 3"	$0CDC0B0	205	192	176
+s" antique white 4"	$08B8378	139	131	120
+s" aqua*"	        $000FFFF	0 	255	255
+s" aquamarine 1"	$07FFFD4	127	255	212
+s" aquamarine 2"	$076EEC6	118	238	198
+s" aquamarine 3"	$066CDAA	102	205	170
+s" aquamarine 4"	$0458B74	69	139	116
+s" azure 1"	        $0F0FFFF	240	255	255
+s" azure 2"	        $0E0EEEE	224	238	238
+s" azure 3"	        $0C1CDCD	193	205	205
+s" azure 4"	        $0838B8B	131	139	139
+s" banana"	        $0E3CF57	227	207	87
+
+(This is not the format found on the above web page, but is in the
+ form that I am creating for an array I plan to put them into.)
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+In the SDL library, we have the function <SDL_MapRGB>, which will
+convert the specified r/g/b values to the format required by the
+current surface you are specifying.
+
+This function is used in the following word:
+
+        : Map-Pixel { *dst _r _g _b -- n }
+          *dst sdl-surface-format @ _r _g _b sdl-map-rgb
+        ;
+  
+The SDL_MapRGB function requires the r/g/b colors to be converted,
+and a pointer to the PixelFormat section of the SDL_Surface struct
+for the surface being worked with.  Not just the pointer to the
+surface itself, but to the PixelFormat section of the surface struct.
+
+Map-Pixel returns a value that is in the format required for the
+surface specified (*dst).  If you are using an 8-bpp surface, it will
+point to the closest match in the current palette.  For 16-, 24- and
+32-bpp modes, the value returned is in the format required for those
+surfaces.
+
+For the 16-bpp mode, this means that the conversion to the 5-6-5
+format has been done for us.
+
+As a further example, I want to use the basic 16-colors of the old
+DOS text mode for my color selections in the sdl-basicfont code,
+so I use the SDL_MapRGB function as follows:
+
+        : font-set-colors ( -- )
+          font-getsurface sdl-surface-format @
+          dup    0    0    0 sdl-map-rgb to #Black
+          dup    0    0 $0FF sdl-map-rgb to #Blue
+          dup    0 $0FF    0 sdl-map-rgb to #Green
+          dup    0 $0FF $0FF sdl-map-rgb to #Cyan
+          dup $0FF    0    0 sdl-map-rgb to #Red
+          dup $0FF    0 $0FF sdl-map-rgb to #Magenta
+          dup $08A $036 $00F sdl-map-rgb to #Brown
+          dup $09E $09E $09E sdl-map-rgb to #LightGray
+          dup $06B $06B $06B sdl-map-rgb to #DarkGray
+          dup $01E $090 $0FF sdl-map-rgb to #LightBlue
+          dup    0 $0FA $09A sdl-map-rgb to #LightGreen
+          dup $097 $0FF $0FF sdl-map-rgb to #LightCyan
+          dup $0FF $030 $030 sdl-map-rgb to #LightRed
+          dup $0E0 $066 $0FF sdl-map-rgb to #LightMagenta
+          dup $0FF $0FF    0 sdl-map-rgb to #Yellow
+              $0FF $0FF $0FF sdl-map-rgb to #White
+        ;
+
+This code works for all four of the available bpp modes.
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+The original demo code was designed to create a 256x256x16 surface
+to display the gradient pattern to.  It is trivial to modify the
+sdllib.fs code to add this, but rather than do that, I changed the
+code to use the 1024x768x16 mode, which gives us a matrixed display
+of the output image.
+
+The Code Addendum requires you have the sdllib.fs, sdl-1.0c.fs and
+sdl-constants.fs files (from my previous SDL column posts).
+
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+

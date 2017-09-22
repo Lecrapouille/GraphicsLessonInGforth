@@ -1,0 +1,249 @@
+---[ gforth: SDL/OpenGL Bug Report 01 ]---------------[06/19/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column is a 'Feature Presentation' - er - ok, ok, it is really a
+Bug Report of a problem that I found with the original code that I
+developed when I started working with SDL.
+
+---[ Where We Are ]--------------------------------------------------
+
+There I was, cruising along, making nice progress on the first of my
+OpenGL programs, when I started running over potholes in the flow of
+my code.
+
+It was a fairly simple thing that I was trying to do, and I know that
+it was not the fault of either SDL or OpenGL, as the compiled C code
+of this program works just fine.
+
+---[ The Problem ]---------------------------------------------------
+
+In SDL, you are able to monitor the focus of both the keyboard and
+mouse in relation to your display window.  In short, if you move the
+mouse away from the display window, you can detect this, and stop the
+program from displaying further data to the surface.  This allows you
+to, basically, pause the display.  This can come in handy when your
+OpenGL code is displaying from 500 to 2000 FPS.
+
+So, it was not working.  That is, it was not pausing when I moved the
+mouse away from the display window.
+
+Finding the problem was easy, for a change.  Figuring out why it was
+a problem in the first place was the hard part.
+
+---[ Problem Location ]----------------------------------------------
+
+The problem was located in the SDL Event data, which is stored in an
+array defined by the following:
+
+        create event sdl-event% nip allot
+
+The sdl-event% struct is defined in the libcc interface file as:
+
+        struct
+          byte%                   field sdl-event-type
+          sdl-active-event%       field sdl-event-active
+          sdl-keyboard-event%     field sdl-event-key
+          sdl-mouse-motion-event% field sdl-event-motion
+          sdl-mouse-button-event% field sdl-event-button
+          sdl-joy-axis-event%     field sdl-event-jaxis
+          sdl-joy-ball-event%     field sdl-event-jball
+          sdl-joy-hat-event%      field sdl-event-jhat
+          sdl-joy-button-event%   field sdl-event-jbutton
+          sdl-resize-event%       field sdl-event-resize
+          sdl-expose-event%       field sdl-event-expose
+          sdl-quit-event%         field sdl-event-quit
+          sdl-user-event%         field sdl-event-user
+          sdl-sys-wm-event%       field sdl-event-syswm
+        end-struct sdl-event%
+
+All of the sdl-???-event% structures are defined before this, and the
+sdl-event% array is where the data is placed when a call to the 
+sdl-pollevent function is made.
+
+The sdl-event% structure is 108 bytes in size at this point.
+
+The origin of this structure is in the original SDL_events.h header
+file from the SDL package, and is coded as:
+
+        /* General event structure */
+        typedef union SDL_Event {
+        	Uint8 type;
+        	SDL_ActiveEvent active;
+        	SDL_KeyboardEvent key;
+        	SDL_MouseMotionEvent motion;
+        	SDL_MouseButtonEvent button;
+        	SDL_JoyAxisEvent jaxis;
+        	SDL_JoyBallEvent jball;
+        	SDL_JoyHatEvent jhat;
+        	SDL_JoyButtonEvent jbutton;
+        	SDL_ResizeEvent resize;
+        	SDL_ExposeEvent expose;
+        	SDL_QuitEvent quit;
+        	SDL_UserEvent user;
+        	SDL_SysWMEvent syswm;
+        } SDL_Event;
+
+Now, those familiar with C programming will probably spot the exact
+nature of the problem at this point.  For everyone else, bear with me
+while I go thru the symptoms.
+
+The way I have sdl-event% defined, when event is allocated, we have
+the following for how the memory is actually mapped:
+
+      create event sdl-event% nip allot
+      event 108 dump
+        4F1AE8: 00 01 02 03  04 05 06 07 - 08 09 0A 0B  0C 0D 0E 0F
+        4F1AE8: 10 11 12 13  14 15 16 17 - 18 19 1A 1B  1C 1D 1E 1F
+        4F1AE8: 20 21 22 23  24 25 26 27 - 28 29 2A 2B  2C 2D 2E 2F
+        4F1AE8: 30 31 32 33  34 35 36 37 - 38 39 3A 3B  3C 3D 3E 3F
+        4F1AE8: 40 41 42 43  44 45 46 47 - 48 49 4A 4B  4C 4D 4E 4F
+        4F1AE8: 50 51 52 53  54 55 56 57 - 58 59 5A 5B  5C 5D 5E 5F
+        4F1AE8: 60 61 62 63  64 65 66 67 - 68 69 6A 6B
+       ok
+
+The sdl-event-type field is byte 0 (4F1AE8) of the structure.
+The sdl-active-event% struct takes the next three bytes, 01/02/03.
+The rest of the structs follow, taking up the remainder of the array.
+
+We will concentrate on the first four bytes of the array, since this
+is where I found the problem (and the solution):
+
+        4F1AE8: 00 01 02 03
+
+Again, the first byte is referenced as sdl-event-type, and the next
+three are from the sdl-active-event% struct, referenced by the fields
+
+        byte 00 - sdl-event-type
+        byte 01 - sdl-active-event-type
+        byte 02 - sdl-active-event-gain
+        byte 03 - sdl-active-event-state
+
+which are all single bytes in size.
+
+When I moved the mouse onto and away from the display window, by
+dumping the memory when the mouse movement was detected, I would get
+the following data returned for the value of the sdl-active-event
+structure:
+
+        4F1AE8: 01 00 01 00     - away from the display
+        4F1AE8: 01 01 01 00     - onto the display
+        4F1AE8: 01 00 01 00     - away from the display
+        4F1AE8: 01 01 01 00     - onto the display
+
+So, what I was seeing was that the sdl-active-event-type field was
+changing value, *not* the sdl-active-event-gain field, which is the
+one that is supposed to change.
+
+It was almost like the data had been shifted one position to the left
+as it was transferred from the SDL function to my gforth structure.
+
+---[ The Solution ]--------------------------------------------------
+
+It turns out that this idea is both wrong - and right!
+
+It is wrong because the data is being placed exactly where it is
+supposed to be, into the array referenced by the event base address.
+
+It is right because of the difference between the definition of a
+struct and a union in C code.  Why C code?  Because the SDL code is
+compiled C code, and we have to make our interface code conform to
+how SDL is done.
+
+The following is an extract from 'The C Book', found at:
+
+   http://publications.gbdirect.co.uk/c_book/chapter6/unions.html
+
+/-------------------------------------------------------------------\
+6.3. Unions
+
+Unions don't take long to explain. They are the same as structures,
+except that, where you would have written struct before, now you
+write union. Everything works the same way, but with one big
+exception. In a structure, the members are allocated separate
+consecutive chunks of storage. In a union, every member is allocated
+the same piece of storage. What would you use them for? Well,
+sometimes you want a structure to contain different values of
+different types at different times but to conserve space as much as
+possible. Using a union, it's up to you to keep track of whatever
+type you put into it and make sure that you retrieve the right type
+at the right time.
+\-------------------------------------------------------------------/
+
+Hmm, that last sentence is a lot like Forth programming...
+
+What this means is that when an SDL_ACTIVEEVENT occurs, the SDL 
+function sdl-pollevent transfers (up to) 20 bytes of data to the
+event array, which is then processed by the program.  The next call
+to sdl-pollevent loads (up to) 20 bytes of data relating to the next
+event in the event poll queue to the event array.
+
+So, we access each event data structure at the event base address.
+
+The result of this gives us the following change to the sdl-event%
+structure definition:
+
+        struct
+          byte% field sdl-event-type
+          1 20  field sdl-event-rawdata
+        end-struct sdl-event%
+
+If you go thru the libcc interface (sdl-1.0f.fs is the latest), you
+will see that in each of the structures that were previously grouped
+in sdl-event%, the first entry is always a -type field.  This is the
+first field mapped into each of these structures, and tells your
+program what kind of data is presently available in the event array.
+
+---[ Ramifications ]-------------------------------------------------
+
+A secondary result of this change is how we reference the event array
+data, and this will affect all of the columns that I have already
+posted that use sdl-events.
+
+Previously, for the incorrect sdl-event% structure, we accessed the
+data by passing the base address of the event data, then stepped thru
+to get to the correct data values, ie,:
+
+        event sdl-event-active sdl-active-event-gain C@
+
+This is now changed to:
+
+        event sdl-active-event-gain C@
+
+This is a cleaner, more direct implementation:
+
+        begin
+          event sdl-pollevent           \ process all events in queue
+        while
+          event sdl-event-type c@
+          case
+            SDL_ACTIVEEVENT of              \ lost/gained mouse focus
+                event sdl-active-event-gain C@ if
+                  TRUE          \ gained focus - draw in window again
+                else
+                  FALSE         \ lost focus - stop drawing in window
+                then
+                to isActive
+              endof
+            \ additional event checks
+          endcase
+        repeat
+
+        isActive if            \ draw the scene if mouse focus gained
+          DrawGLScene drop
+        then
+
+---[ Wrapping Up ]---------------------------------------------------
+
+All of my previous columns, Part I thru Part XII, will probably have
+to have revisions made to allow them to work with any release of the
+libcc interface after version sdl-1.0f.fs, which was posted 06/13/10.
+
+Figuring this out also eliminated the remainder of the problems that
+had cropped up in my OpenGL code, so it may be getting posted fairly
+soon.
+
+Until later.
+-----------------------------------------------[End Bug Report 01]---

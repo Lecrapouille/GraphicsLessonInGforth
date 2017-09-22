@@ -1,0 +1,25 @@
+=====================================================================
+          File: sdl-tut09.zip
+         Title: gforth: SDL/OpenGL Graphics Part IX
+        Author: Timothy Trussell
+          Date: 04/17/2010
+   Description: Wu Lines Redux
+=====================================================================
+               gforth: SDL/OpenGL Graphics Part IX
+=====================================================================
+
+           Updating the Wu lines code for use with SDL
+
+We finally have a chance to see how the Wu Algorithm looks on a
+resolution higher than 320x200, and I must say it looks pretty good.
+
+Added: Any 24-bpp color value for the line drawing color.  No longer
+       limited to a choice of two colors.  Select from 16,777,216 of
+       your favorite colors.
+
+       Works in 8-, 16-, 24- and 32-bpp resolutions.
+              
+=====================================================================
+Timothy Trussell                                           04/17/2010
+=====================================================================
+

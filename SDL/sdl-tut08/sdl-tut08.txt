@@ -1,0 +1,507 @@
+---[ gforth: SDL/OpenGL Graphics Part VIII ]----------[03/28/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column, as with the rest of this series of columns, will be 
+posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut08.zip
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+There are times when all you need is the simple 8x8 font that we had
+at the DOS prompt, so I am adding a basic font package based on the
+packed-pixel sprite concept that I used back in one of my earlier
+columns.  Old habits die hard, and there are times when I *really*
+want to use the original PC font text line characters.
+
+Well, since most of the resolutions I am using need a larger font
+size, I will modify that to needing at least an 8x16 font.
+
+Although I have the SDL TTF font system installed, I decided to go
+ahead and create a basic font generator engine coded in Forth, as it
+turns out that for basic informational displays, sometimes putting
+TTFs to the display are too much when you just want to "do it".
+
+I am aware that there are many TTFs available on the internet that 
+can be used for precisely what I am going to use this for, but this
+small package fits the needs for what I am doing for the moment.
+
+---[Note]------------------------------------------------------------
+You will need to copy the following Code Addendums from the previous
+column (Part VII) to your ~/sdl-tut08 folder:
+
+        Code Addendum 4 - sdllib.fs
+        Code Addendum 5 - sdl-1.0c.fs
+        Code Addendum 6 - sdlconstants.fs
+
+since I am not going to post them (again) - they were just posted
+yesterday.
+
+You do not need to copy the TTF files ttflib.fs and sdl-ttf-1.00.fs
+as this is meant to be an alternative to using the TTF system.
+
+Nonetheless, you can use this package AND the TTF system at the same
+time in your programs.  I plan to.
+
+The archive sdl-tut08.zip that I post to the Taygeta Archives will
+include all of the library files required, though.
+--------------------------------------------------------[End Note]---
+
+---[ Font Engine Core ]----------------------------------------------
+
+The heart of this font engine is the packed-pixel drawing function,
+which is coded as follows:
+
+: Draw-Font-Char { *dst _cx _cy *src -- }
+  _cx 8 * to _cx                          \ scale x coord for surface
+  _cy 16 * to _cy                         \ scale y coord for surface
+  16 0 do
+    8 0 do
+      *src C@
+      128 i RSHIFT AND if                   \ is it a non-zero pixel?
+        *dst _cx i + _cy j + font-color PutPixel       \ yes, plot it
+      else                                                       \ no
+        font-transparency 0= if   \ if transparency off, plot 0 pixel
+          *dst _cx i + _cy j + font-background-color PutPixel
+        then
+      then
+    loop
+    *src 1+ to *src                 \ increment to next byte in image
+  loop
+;
+
+This function uses two do..loop constructs to access and display the
+pixel data to the surface.
+
+The outer loop counts through the 16 bytes of data that represents
+the sprite.
+
+The inner loop processes each byte, one bit at a time.
+
+For the letter 'A', on the 5th pass through the outer loop we are
+processing the byte value 06Ch, or binary 01101100.
+
+For those unfamiliar with binary, the numbering for 0 through 15 is:
+
+        0000 - 0        1000 - 8
+        0001 - 1        1001 - 9
+        0010 - 2        1010 - A  (10)
+        0011 - 3        1011 - B  (11)
+        0100 - 4        1100 - C  (12)
+        0101 - 5        1101 - D  (13)
+        0110 - 6        1110 - E  (14)
+        0111 - 7        1111 - F  (15)
+
+        76543210 - digit positions in an 8-bit byte
+
+It is important to note that in binary, the least significant digit
+is displayed on the right of the number as we look at it. This is how
+we look at numbers in base 10 also:
+
+                        0 - zero
+                       10 - ten
+                      100 - one hundred
+                     1000 - one thousand
+
+What we are going to do is process the byte values from the left to
+the right, as we view the binary numbers above.  So, instead of
+starting with the 0th digit position, we start with the 7th digit
+position.
+
+Our bit check flag starts out at a value of 128 (10000000 binary),
+with the mask bit in the 7th digit position.
+
+As the inner loop progresses from a value of 0 to 7, we will shift
+the bit position to the RIGHT, letting us check a different bit in
+the byte value from the sprite during each pass of the loop.
+
+      *src C@                  \ get the current byte from the sprite
+      128 i RSHIFT AND if                   \ is it a non-zero pixel?
+
+If the bit from the source byte tests to be a 1, then we will go on
+and plot a pixel to the surface in the current foreground color.
+
+If the bit tests to be a 0, we will plot a background color pixel if
+the font-transparency flag is off, or skip the pixel if the flag is
+on.
+
+        76543210 - digit number
+        ||||||||
+        01101100 - 06Ch from sprite data
+        ||||||||
+        10000000 - loop 0    128 (80h)   128 0 RSHIFT
+        01000000 - loop 1    64  (40h)   128 1 RSHIFT
+        00100000 - loop 2    32  (20h)   128 2 RSHIFT
+        00010000 - loop 3    16  (10h)   128 3 RSHIFT
+        00001000 - loop 4    8   (08h)   128 4 RSHIFT
+        00000100 - loop 5    4   (04h)   128 5 RSHIFT
+        00000010 - loop 6    2   (02h)   128 6 RSHIFT
+        00000001 - loop 7    1   (01h)   128 7 RSHIFT
+
+An RSHIFT of 0 effectively does nothing.
+
+In the packed-pixel format, the letter 'A' is represented as the
+sequence of 16 bytes shown here:
+
+                HEX      BINARY
+                ---     --------
+                000     00000000        byte 1
+                000     00000000        byte 2
+                010     00010000        byte 3
+                038     00111000        byte 4
+                06C     01101100        byte 5
+                0C6     11000110        byte 6
+                0C6     11000110        byte 7
+                0FE     11111110        byte 8
+                0C6     11000110        byte 9
+                0C6     11000110        byte 10
+                0C6     11000110        byte 11
+                0C6     11000110        byte 12
+                000     00000000        byte 13
+                000     00000000        byte 14
+                000     00000000        byte 15
+                000     00000000        byte 16
+
+---[ Font Engine Library ]-------------------------------------------
+
+I have put together a series of functions to form a small library
+which, for the most part, act as wrappers that send data to the
+Draw-Font-Char function. Others are used to control placement of the
+text when it is displayed to the surface.
+
+The prototypes are listed here:
+
+  : font-SetDestSurface ( *dst -- )
+  : font-getsurface     ( -- *dst )
+  : GetX                ( -- cx )
+  : GetY                ( -- cy )
+  : GetXY               ( -- cx cy )
+  : GotoXY              ( x y -- )
+  : Process-Space       ( -- )
+  : \r                  ( -- )
+  : \n                  ( -- )
+  : Draw-Font-Char      { *dst _x _y *src -- }
+  : Update-Cursor-Position ( -- )
+  : GPutC               { _c -- }
+  : GPutS               { *str _len -- }
+  : GWriteC             { _x _y _fg _bg _c -- }
+  : GWriteS             { _x _y _fg _bg *str _len -- }
+  : GWriteAt            ( x y fg bg &str len -- )
+  : GWriteCenter        { _y _fg _bg &str _len -- }
+  : GClearLine          { _y _fg _bg -- }
+  : GBox                { _x1 _y1 _x2 _y2 _fg _bg _type -- }
+  : GFBox               { _x1 _y1 _x2 _y2 _fg _bg _type -- }
+  : font-init           ( *dst -- )
+
+---[ font-SetDestSurface ( *dst -- ) ]---
+
+This is used to specify the SDL surface the text is to be displayed
+to.  It is called from <font-init>, which also sets up several values
+which specify information about the surface the library requires.
+
+Returns: Nothing
+
+---[ font-getsurface ( -- *dst ) ]---
+
+This checks font-surface to see if it is set to NULL (0). If not, it
+will return the current value - otherwise, it will return the default
+screen-surface value defined by InitGraph. A final check is to see if
+screen-surface is set to NULL (0). If it is, then InitGraph has not
+been called, so exit/abort out.
+
+Returns: Pointer to destination surface
+
+---[ Cursor Coordinate Functions ]---
+
+<GetX>   sets the cursor x coordinate.
+<GetY>   sets the cursor y coordinate.
+<GetXY>  returns the current cursor x/y coordinates.
+<GotoXY> sets both of the cursor x/y coordinates.
+<\r>     Carriage Return - resets the cursor x coordinate to 0.
+<\n>     New Line - increments the cursor y coordinate.
+
+---[ \r ]---
+
+This acts as a Carriage Return, and resets the cursor x coordinate to
+the start of the *current* line.  It does not move the cursor to the
+next screen line.
+
+---[ \n ]---
+
+This acts as a New Line, incrementing the cursor y coordinate.  It
+does not change the cursor x coordinate, so the cursor simply moves
+down the screen one line.
+
+---
+
+It should be noted that the values in font-cursor-x and font-cursor-y
+do not reflect physical screen coordinates on the display surface.
+They actually refer to what you might think of as a 'virtual' text
+display.
+
+The values in the font-cursor-x/y variables are scaled, rather than
+absolutes.
+
+The x coordinate range is calculated by dividing the window-screenw
+value (set by InitGraph) by the width of the font - <8>.
+
+The y coordinate range is calculated by dividing the window-screenh
+value (set by InitGraph) by the height of the font - <16>.
+
+These values are stored in font-cursor-max-x and font-cursor-max-y,
+and are calculated by font-init.  This is also the main reason that
+font-init has to be called *after* InitGraph.  If both of these
+max cursor values are 0, then nothing will ever be displayed.
+
+In the 640x480 resolution, this gives us a text display of:
+
+        640/8  = 80 characters wide
+        480/16 = 30 characters high
+
+The 800x600 resolution give us:
+
+        800/8  = 100 characters wide
+        600/16 =  37 characters high (with a waste of 8 lines)
+
+and the 1024x768 resolutions gives us:
+
+        1024/8 = 128 characters wide
+        768/16 =  48 characters high
+
+So, when you specify an x,y coordinate of (10,25) the Draw-Font-Char
+function multiplies the x coordinate by 8, and the y coordinate by 16
+which gives us the absolute screen address to plot the text at.
+
+---[Note]------------------------------------------------------------
+This is simply how I have coded how this text engine to work.
+
+There are actually no restrictions as to where on the screen the text
+data can be displayed.
+
+You can code a display function that will draw each character above
+or below the previous (or next) characters very easily.
+--------------------------------------------------------[End Note]---
+
+---[ Update-Cursor-Position ( -- ) ]---
+
+Checks to see if position has gone past limits for both x and y.
+
+If the cursor x coordinate reaches max-x, reset to 0 and increment 
+the cursor y coordinate.
+
+If the cursor y coordinate reaches max-y, reset to 0 (top of screen).
+
+Returns: Nothing.
+
+---[ GPutC { _c -- } ]---
+
+Plots the character <_c> to the screen at the current cursor coords
+in the color specified by by the variable <font-color>
+
+If the font-transparency flag is set to 0 (off), then 0 pixels will
+be plotted using the font-background-color value.
+
+If the font-transparency flag is set to 1 (on), then it will skip the
+zero pixel positions in the character being drawn, leaving whatever
+is already on the background visible 'behind' the character.
+
+The cursor position will be advanced after each character has been
+plotted to the surface.
+
+There is no 'special casing' for this font, as all of the control 
+characters have also been allocated graphics images.
+
+Returns: Nothing.
+
+---[ GPutS { *str _len -- } ]---
+
+Displays a stream of data at the cursor x,y coordinates, using the
+current font-transparency and color settings.
+
+The cursor x and y coordinates are incremented as per the settings of
+the currently active font object.
+
+This is simply a wrapper that feeds GPutC.
+
+Returns: Nothing.
+
+---[ GWriteC { _x _y _fg _bg _c -- } ]---
+
+Display a character at the given x,y screen coordinates with the
+specified foreground and background colors
+
+Example:
+        1 5 #White #Blue 65 GWriteC
+
+Displays the letter 'A' in white on a blue background at (1,5)
+
+As it specifies the background color to use, font-transparency is
+turned off.
+
+Returns: Nothing.
+
+---[ GWriteS { _x _y _fg _bg *str _len -- } ]---
+---[ GWriteAt ( x y fg bg &str len -- ) ]---
+
+Display a string at the given cursor x,y coordinates, with the
+specified foreground and background colors
+
+Example:
+       1 5 #White #Blue " Basic screen display string" GWriteS
+
+GWriteAt is an alias for GWriteS.
+
+As it specifies the background color to use, font-transparency is
+turned off.
+
+Returns: Nothing.
+
+---[ GWriteCenter { _y _fg _bg &str _len -- } ]---
+
+Displays a string in the center of the specified row.
+
+As it specifies the background color to use, font-transparency is
+turned off.
+
+Returns: Nothing.
+
+---[ GClearLine { _y _fg _bg -- } ]---
+
+Clears the row with the specified fg/bg colors by displaying
+font-cursor-max-x SPACE characters.
+
+As it specifies the background color to use, font-transparency is
+turned off.
+
+Returns: Nothing.
+
+---[ GBox { _x1 _y1 _x2 _y2 _fg _bg _type -- } ]---
+---[ GFBox { _x1 _y1 _x2 _y2 _fg _bg _type -- } ]---
+
+GBox displays a text window frame to the display surface. The inside
+of the frame is not changed.
+
+GFBox displays a color filled text window.
+
+I have included a set of 14 different styles, along with two special
+types for drawing a hatched background - seen in the demo program.
+
+Type 0: no frame (space characters)
+     1: single line box
+     2: double line box
+     3: double top/bot, single sides
+     4: single top/left, double right/bot
+     5: double top/left, single right/bot
+     6: double top/right, single left/bot
+     7: single top/right, double left/bot
+     8: solid blocks
+     9: solid sides, half top/bot
+    10: half solids
+    11: light shaded pattern
+    12: medium shaded pattern
+    13: dark shaded pattern
+
+Hatched background types
+
+    14: background frame box - single line
+    15: background frame box - double line
+
+All of these frame styles are using characters that exist in the
+IBM PC font set (and in Code Addendum 03).
+
+For the first 14 (0..13) frame styles, the sdl-fillrect function is
+used to fill the interior of the box.
+
+For the last two styles, the display will be slowed down while the
+interior fill characters are being displayed.  A work-around for this
+is to create an additional surface that you keep such a large window
+saved to, and when needed, just blit it to the destination surface.
+
+Returns: Nothing.
+
+---[ font-init ( *dst -- ) ]---
+
+This has to be called *after* you have called InitGraph, as it has to
+calculate the font-cursor-max-x and font-cursor-max-y values based on
+the current resolution settings.
+
+The destination surface is stored in <font-surface> for use by the
+library routines.
+
+Returns: Nothing.
+
+---[ fontdemo ]------------------------------------------------------
+
+The only thing of note in the demo code is the definition of the
+colors being used.
+
+I have been unable to easily find the basic color palette that we
+have in Mode 13h.  That is, the colors are there, as seen in my VBoll
+demo in part VI of this column, but the colors are dim.
+
+So, I spent some time going through the basic SDL palette, and found
+some colors that I have assigned to constants that come close to the
+palette colors and intensities that I want to use:
+
+          0 constant #Black
+          3 constant #Blue
+         16 constant #Green
+          9 constant #Cyan
+        128 constant #Red
+        162 constant #Magenta
+         68 constant #Brown
+        109 constant #LightGray
+         36 constant #DarkGray
+         23 constant #LightBlue
+         21 constant #LightGreen
+         31 constant #LightCyan
+        \ constant #LightRed
+        \ constant #LightMagenta
+        248 constant #Yellow
+        255 constant #White
+
+Since I have a colors enum construct in the sdllib.fs file, I simply
+added a pound sign to the names of these colors.
+
+I left out LightRed and LightMagenta, both because I got tired from
+looking at all those colors, and because I have never used them in
+projects in the past.
+
+The demo itself draws the same information three times, in three
+different screen resolutions, with five second pauses between each.
+
+The functions that display text strings in this package require the
+use of normal Forth strings, as opposed to the zero-delimited strings
+that I waxed poetically upon in my last column.
+
+If you choose to use both the TTF system and this one at the same
+time, it is up to you to ensure the correct type of string is being
+sent to the display functions you are using.
+
+---[ Wrapping It Up ]------------------------------------------------
+
+I am considering doing one more font package, which is basically a
+cross between this packed pixel version and the TrueType system, in
+that it uses a single size font, but allows the characters to be
+displayed underlined, bold, italic and bold/italic, by rendering
+each character prior to being displayed by the sprite engine.
+
+On the plus side, it has 22 fonts that come with it.  On the down
+side, they are in a custom format, which would have to be studied to
+figure out how to create more for use with the engine.
+
+Or - I may go on to something new.  Decisions, decisions.
+
+Until my next, enjoy.
+------------------------------------------[ End of sdl-tut08.txt ]---
+

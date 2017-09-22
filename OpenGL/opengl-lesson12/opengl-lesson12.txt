@@ -1,0 +1,157 @@
+---[ gforth: OpenGL Graphics Lesson 12 ]--------------[07/26/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson12.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 12 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+gl-call-list ( list -- )
+
+    Execute a display list
+    
+    Parameter <list> is an integer value, representing a "name"
+
+    Description:
+
+        glCallList causes the named display list to be executed. The
+        commands saved in the display list are executed in order,
+        just as if they were called without using a display list. If
+        list has not been defined as a display list, glCallList is
+        ignored.
+
+        glCallList can appear inside a display list. To avoid the
+        possibility of infinite recursion resulting from display
+        lists calling one another, a limit is placed on the nesting
+        level of display lists during display-list execution. This
+        limit is at least 64, and it depends on the implementation.
+
+        GL state is not saved and restored across a call to
+        glCallList. Thus, changes made to GL state during the
+        execution of a display list remain after execution of the
+        display list is completed. Use glPushAttrib, glPopAttrib,
+        glPushMatrix, and glPopMatrix to preserve GL state across
+        glCallList calls.
+
+    Notes:
+
+        Display lists can be executed between a call to glBegin and
+        the corresponding call to glEnd, as long as the display list
+        includes only commands that are allowed in this interval.
+    
+gl-color-3fv ( *v -- )
+
+    Sets the current color.
+    
+    Parameter <*v> is a 32-bit pointer to an array of 32-bit
+    floating point values (C standard float type), which represents
+    the red, green and blue elements of a color.
+    
+gl-gen-lists ( range -- list# )
+
+    Generate a contiguous set of empty display lists
+    
+    Parameter <range> is an integer value that specifies the number
+    of contiguous empty display lists to be generated.
+
+    Return value <list#> points to the first list created.
+    <list#>+1 points to the next list.
+    <list#>+2 points to the next... and so on, up to range-1 as the
+    limit for the number of lists created [0..(range-1)]
+
+gl-new-list ( list mode -- )
+
+    Create or replace a display list.
+    
+    Parameters <list> and <mode> are integer values.
+
+      list: Specifies the display-list "name", which is an integer
+          value pointing to a list# created by gl-gen-lists.
+
+      mode: Specifies the compilation mode, which can be GL_COMPILE
+          or GL_COMPILE_AND_EXECUTE.
+
+gl-end-list ( -- )
+
+    Ends a display list generation block.
+    
+    Parameters: none.
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+three files to that directory:
+
+        opengl-lesson12.fs      - Code Addendum 1
+        opengllib-1.12.fs       - Code Addendum 2
+        mini-opengl-1.12.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson also uses an image file which you can retrieve from the
+NeHe Lesson 12 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=12
+
+or from the opengl-lesson12.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson12.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.12.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson12.fs
+        lesson12
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson12.fs
+        lesson12
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 13 - Bitmap fonts
+
+----------------------------------------------------[End Lesson12]---
+

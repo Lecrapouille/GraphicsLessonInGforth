@@ -1,0 +1,1058 @@
+gforth: SDL/OpenGL Graphics Part I
+9 messages 
+
+Newsgroups: comp.lang.forth
+From: Tim Trussell <tgtruss...@hotmail.com>
+Date: Sun, 31 Jan 2010 10:23:08 -0800 (PST)
+Local: Sun, Jan 31 2010 11:23 am
+Subject: gforth: SDL/OpenGL Graphics Part I
+
+---[ gforth: SDL/OpenGL Graphics Part I ]-------------[01/30/2010]---
+
+                         by Timothy Trussell
+
+---[ Where Are We ]--------------------------------------------------
+
+Creating graphics in gforth.  Well, not just creating the graphics,
+since all you need to do that is a double buffer memory block.  The
+hard part up to now has been getting that image displayed to the VGA
+screen.
+
+So, how do you turn on the graphics display and transfer data to the
+video memory?
+
+Ah, now *that* is the real question - how does one get gforth to do
+any kind of graphics - and display the images to the video display?
+One solution is to install the Simple Directmedia Layer (SDL)
+multimedia library on your system, and enable gforth to access it.
+
+Furthermore, with a slight expansion to the installation, we will
+also be able to interface gforth to the OpenGL libraries, giving you
+the programming tools to create state of the art graphics programs.
+It would be good to browse the SDL website, located at:
+
+        www.libsdl.org
+
+and the OpenGL website, located at:
+
+        www.opengl.org
+
+to get a better grasp of what the libraries are capable of providing
+the programmer.  It is much more than just video.  Audio, keyboard,
+joystick, mouse -- and more are part of this library.
+
+Also, I am referencing the 1.2.xx version of the SDL library, not the
+newer 1.3 version that is currently being worked on.
+
+As a prequel to doing further graphics columns using gforth, I will
+do a mini-tutorial walkthru of getting a computer up to speed for
+getting gforth to perform VGA graphics.
+
+---[Note]------------------------------------------------------------
+
+If you choose to follow these instructions, make sure that you read
+ALL of them before even thinking of starting to do what is outlined
+here in this column.
+
+I have tried to make the following tutorial simple to do, but there
+is ALWAYS some way for things to go wrong.
+
+When in doubt, back off everything of value on your drive before you
+do things like modify the partition tables, or install new operating
+systems.
+
+In fact, now might be a good time to consider getting that new 500gig
+or Terabyte hard drive you have been thinking of.
+
+I am going to assume that if you are going to proceed from here that
+you have some level of technical proficiency at installing any kind
+of operating system onto a computer.  If you have never done this
+kind of thing, then you should stop now and go consult with your
+local computer geek about what you want to do.  Have your geek read
+this column, so he knows what you are trying to do.
+
+If you *need* to keep your existing operating system in working order
+and also want to add Ubuntu to the system, you should talk to your
+geek about the concept of Dual Booting.  In this case, adding another
+hard drive to your system is a *really* good idea.
+
+Never forget - Murphy never sleeps.  He may go quiet for a while, but
+he is always waiting to take action.
+
+You have been warned.
+--------------------------------------------------------[End Note]---
+
+---[ Installing SDL/OpenGL ]-----------------------------------------
+
+The SDL libraries are available for numerous operating systems, and I
+will be doing this walkthru using a Linux operating system:
+
+        Ubuntu v9.10 i386 release
+
+which is available at:
+
+        www.ubuntu.com
+
+Download the Ubuntu .ISO (690 megs) and burn it to a CD.
+
+-- If you are choosing to do this in a virtual computer emulation
+   such as the Sun VirtualBox, then you can leave it as an .ISO and
+   simply mount it as a CD to the emulator guest.
+
+-- This is precisely what I did while writing this, so everything
+   that follows was performed on my virtual Ubuntu install as I
+   was writing this.  All of the software packages that are to be
+   installed are already on my main machine, but I wanted to do the
+   tutorial based on a system that was freshly installed as a base
+   reference.
+
+-- If you are using gforth on a non-i386 based computer, I have no
+   idea if any of this information is applicable or not.  I hope it
+   is, but your mileage may vary.
+
+If, at the time you read this, there is a newer release available,
+
+select it.
+
+What I will be describing here should work if you are:
+
+  1. Installing onto a new or reconfigured hard drive *
+  2. Installing into a VirtualBox Ubuntu guest *
+  3. Installing into a VirtualPC Ubuntu guest **
+  4. Installing into a VMWare Ubuntu guest **
+  5. Installing onto a bootable USB memory stick **
+
+*  - tested
+
+** - not tested
+
+The system I am using is configured with the following:
+
+  1. AMD-64/X2 3800+ Dual Core CPU
+  2. 1.5 gigs RAM
+  3. nVIDIA GeForce 7300GS PCI/e with 512 megs RAM
+  4. Ethernet connection to a hub for Internet connectivity
+  5. Ubuntu v9.10 i386, updated to the 2.6.31.17 revision
+
+The virtual computer is configured to have:
+
+  1. 512 megs of RAM
+  2. 32 megs of video memory
+  3. 16 gigs of hard drive space
+  4. 3D Acceleration enabled
+
+One of the primary advantages of using the virtual computer to do the
+install is that if something screws up, you have no fear of losing
+any critical data on your main machine.  Worst case is to simply
+delete the emulated hard drive image and start over.
+
+You also get a chance to figure out the bugs BEFORE installing the
+software packages onto your main machine for use.
+
+---[ ***BEFORE*** Installing Ubuntu ]--------------------------------
+
+Before zapping your hard drive and installing Ubuntu, it would be to
+your benefit to ensure that you will still be connected to the
+Internet after Ubuntu is installed, and you can do this by putting
+your new Ubuntu CD into the drive and rebooting the computer.
+
+---[Note]------------------------------------------------------------
+
+If your Internet connection to your computer is thru an ethernet line
+then there is a good probability you won't have a problem.  If you
+are connected thru a dial-up modem, then you will have to figure out
+how to connect thru Linux.  In any case, the following will let you
+know if you have to do something more.
+
+--------------------------------------------------------[End Note]---
+
+A screen with a language selection will come up - select yours.
+
+When the menu comes up, select the first option, which will let you
+check out the Ubuntu package *without* installing anything onto the
+hard drive in your computer.
+
+After the desktop comes up, you will have a pair of icons on the
+desktop.  Click on the Firefox Web Browser icon at the top of the
+screen, and enter a URL (ie, www.google.com) to see if it will go
+online and access the internet.
+
+If Firefox does not go online, you need to figure out why before you
+continue with installing Ubuntu.
+
+-- If you are installing Ubuntu into a virtual computer guest, then
+   the above still applies, as it will test the emulated network
+   connection to let you know if you can access the Internet from the
+   guest, or if you have to tweak the settings so that it will.
+
+---[ Ok, Install Ubuntu ]--------------------------------------------
+
+If the Internet test went ok, either restart the system (click on the
+ubuntu icon at the top right, select <restart>) and select the next
+option in the list to install Ubuntu when the CD reboots, or click on
+the Install icon on the desktop to start the Ubuntu installation.
+
+Go thru the installation, answering everything as you go. You know,
+normal operating system install stuff.
+
+Eventually, you will end up back at the orange-peachy desktop again.
+Now that Ubuntu is installed, verify that you can access the Internet
+again, by clicking on the Firefox Web Browser icon again.  If all is
+good, then continue.  If not, then you need to figure out why it is
+not letting you access the Internet.
+
+Now, use the Update Manager (System->Administration->Update Manager)
+to let the system update everything. It will go online and get the
+required packages to update the kernel and various packages to the
+current level of latest and greatest.
+
+---[ Install SDL/OpenGL ]--------------------------------------------
+
+We are now ready to install the SDL library packages.  We will use
+the System->Administration->Synaptic Package Manager program to do
+this.
+
+Run Synaptic, enter your password, and enter 'libsdl' into the search
+box. You will get a listing of many possible packages, but these are
+the ones that you need to mark for installation:
+
+        libsdl-ttf2.0-0
+        libsdl-ttf2.0-dev
+        libsdl-image1.2
+        libsdl-image1.2-dev
+        libsdl-mixer1.2-dev
+        libsdl1.2-dev
+        libsdl1.2debian-all
+
+** about 12.5 megs in 50 packages to install
+
+If the checkbox for one of these is already green (installed) then
+don't try to reinstall it.
+
+Sometimes when you mark an entry, a window will pop up with a list of
+multiple files that will also be included.  Accept the additional
+files, and mark all for installation in the package. An example of
+this is that we marked seven packages above, but about 50 will have
+been marked for installation.
+
+Once you have marked these, click on the Apply button on the top
+line menu, and the selected packages will be installed.
+Next, enter 'libgl' into the search box, and select the entry for
+
+        libgl1-mesa-dev
+
+Mark the entry for install, then click Apply to do so.
+
+-- on my test of this, the libgl1-mesa-dev file was loaded during the
+   processing of the above SDL libraries, so if it is already marked
+   then do not attempt to re-install it.
+
+In the search box, enter 'libglu', and select the entries:
+
+        libglu1-mesa-dev
+        libglut3-dev
+
+Mark the entries for install, then click Apply to do so.
+
+The last graphical package to add is 'xorg' - enter this into the
+search box and select the following package:
+
+        xorg-dev
+
+** about 3.6 megs in 63 ...
+
+Mark the entry for install, then click Apply to do so.
+
+The next package to install is 'libtool' - enter this into the search
+window, mark the entry, and then Apply to install it.
+
+        libtool
+
+** 776k in 3 packages to install
+
+Finally, we are ready to install the gforth system, so enter 'gforth'
+into the search box, select
+
+        gforth
+
+** 976k in 3 packages to install
+
+Mark the entry for install, then click Apply to do so.
+
+---[ Testing gforth ]------------------------------------------------
+
+At this point, we should have a working interface to the SDL and the
+OpenGL libraries from the gforth system installed.
+
+Looks like time for a 'Hello World' example.  But, we are supposed to
+be doing something graphical with SDL and/or OpenGL, so this might be
+a little more appropriate:
+
+Victor M. <samsaga2> has written a nice little textured 3D demo for
+
+gforth, located at:
+
+        http://platypus3d.googlecode.com/svn/trunk/
+
+with the files:
+
+        3ddemo.fs
+        box.bmp
+        gl.fs
+        glconstants.fs
+        glf.fs
+        sdl.fs
+        sdlconstants.fs
+        utils.fs
+
+To create a directory, Applications->Accessories->Terminal to open a
+
+terminal window, and enter:
+
+        mkdir 3ddemo
+
+Download all the files and put them into this directory (right click
+
+save as... from the browser window).
+
+-- The terminal window opens by default into your home directory,
+   under which the above command created the 3ddemo directory.
+
+   The Save As browser function opens a file window which will let
+   you go thru your directory structure.  Select your home directory
+   which is probably the third entry, directly above the <Desktop>
+   entry in the list, which lists all of the subdirectories in the
+   main window.  Double-click on <3ddemo>, and then click on <Save>
+   at the bottom right of the window to save the file.
+
+Now, from the terminal window, enter the following:
+
+        cd 3ddemo
+
+        gforth
+
+        include 3ddemo.fs
+
+        3ddemo
+
+A graphics window will open, showing the 3D box spinning, while in
+the gforth terminal a running display of the frames per second (fps)
+will be printed.
+
+If you remove the screen focus from the graphics window, like if you
+click the mouse on the terminal window, giving it the screen focus,
+the graphics display of the spinning box will stop until you again
+click on the graphics window giving it the screen focus.  I am not
+sure if this is intentional or not.
+
+To stop the application, and return to gforth in the terminal, click
+on the 'close' box of the graphics window.
+
+You can edit the code and select different window resolutions by
+changing the values for the window-size constant. The larger the
+resolution, the lower the fps count goes.
+
+If you are running this under the Sun VirtualBox emulator, then make
+sure you have the 3D Acceleration tab for the Ubuntu guest checked.
+Of particular note in this demo are the SDL.FS, SDLCONSTANTS.FS,
+GL.FS and GLCONSTANTS.FS files.  These define the capabilities of the
+SDL and OpenGL libraries.  To get an idea of how to program with them
+will require going online and examining the tutorials, games and the
+other programming examples that have been done on the net.
+
+The entries in the SDL.FS and GL.FS files are a subset of what is
+available to the gforth programmer.  These files can be expanded to
+include all of the code modules that SDL and OpenGL provide.
+
+Of particular interest for SDL is the Lazy Foo' tutorials, to be
+found at
+
+        http://lazyfoo.net/SDL_tutorials/index.php
+
+If you are wanting to try your hand at the C++ code that is on this
+site, your spanking new Ubuntu system has the gcc compiler sitting
+there ready for use.  In fact, it isn't sitting idle, because when
+you ran the above 3DDemo program, it was used to compile the code
+that gforth used to interface to the SDL and OpenGL libraries.
+
+And that is the core of the SDL/OpenGL interface to gforth.  We are
+compiling and linking C++ code into gforth - the same code that is
+used to operate various functions of the Ubuntu system itself (when
+you have the correct software loaded that needs what you are using).
+
+---[ Compilation Considerations ]------------------------------------
+
+You will occasionally need to delete the contents of the directory:
+
+        ~/.gforth/libcc-named
+
+and possibly other /libcc directories that are placed here, as the
+old files in this directory can interfere with a current project that
+you are working with.
+
+To delete this directory, simply go to the Ubuntu file manager,
+select View->Show Hidden Files (or press Ctrl-H) and then scroll down
+your home directory to the .gforth entry.  Click the arrow in front
+of it to show any directories below it, select libcc-named, and then
+press the DEL key. Do not delete the .gforth directory, though.
+
+-- For those more comfortable with the command line, using
+
+        rm -r ~/.gforth/libcc-named
+
+   is just as viable.
+
+I had to do this when I ran a second demo program after running the
+3DDemo program above.  It ran fine after I deleted libcc-named.
+I haven't taken the time to do so yet, but I want to see if I can
+create a couple of lines of code to put in my gforth programs that
+will automatically do this when I am compiling a program. I think I
+recall seeing mention of a way to access operating system calls from
+gforth. Kind of a "forget-directory" widget.
+
+I am expecting to have at least this segment of this tutorial get
+some feedback by those more knowledgeable about this conflict with
+the libcc-named directory problem, so we will see what is said.
+
+I expect that specifying the directory to be used by the program that
+is being compiled would be the most common solution.
+
+---[ What Is Next? ]-------------------------------------------------
+
+The second already existing gforth SDL/OpenGL demo that I am aware of
+can be found at:
+
+  www.complang.tuwien.ac.at/anton/lvas/stack-abgaben/07w/glforth/
+
+written by:
+
+    Gerald Wodni    ( Programmer - Maintainer )
+    Daniel Abouakil ( Artist, Debugging - inactive )
+    Norbert Sattler ( Artist, Debugging - inactive )
+
+and was presented at EuroForth 2008.  Check out the pictures at this
+site.  Trying to get the GLForth program running is what led me to
+working on the SDL/OpenGL interface, and resulted in filtering thru
+the Internet to find the information presented in the above tutorial
+on getting them installed under Ubuntu.
+
+-- The code available on the site will *not* run as-is on your new
+   Ubuntu system, and requires a few modifications to get it
+   working.
+
+   But, it was worth all of the research when I saw the Observers
+   tracking across the sky at 400 fps.
+
+Simply for the experience it will give, I plan on converting a few
+of the demos that I coded in my Graphics of the XXXX Kind columns to
+implement SDL where applicable.
+
+** On my test system, I copied the 3DDemo and GLForth directories
+   over and ran them both with gforth.
+
+** As noted before, it is necessary to delete the libcc-named
+   directory, as it interferred with the execution of GLForth
+   after I had already compiled and run 3DDemo.  Then, I had the
+   same problem running 3DDemo after I had compiled/run GLForth
+
+---[ Closing ]-------------------------------------------------------
+
+With this interface between gforth and the SDL/OpenGL libraries, the
+level of graphics that is now available has just skipped ahead by
+about fifteen years.  The columns I have posted since the end of 2006
+have used computer graphics technologies that have existed through
+the 1990s, but were unable to advance - on my part - since I was not
+willing to get into Windows programming simply to do OpenGL and
+DirectX.
+
+So, I have quite a lot of new research to get into, trying to figure
+out how to perform snazzy new graphics with my new Forth system.
+
+So, that's all for this one.  One more proofread in the morning, and
+this is off to face wrath or glee (or, *sigh*, indifference). 
+
+
+
+Newsgroups: comp.lang.forth
+From: m...@iae.nl (Marcel Hendrix)
+Date: Sun, 31 Jan 2010 21:25:10 +0200
+Local: Sun, Jan 31 2010 12:25 pm
+Subject: Re: gforth: SDL/OpenGL Graphics Part I
+
+Tim Trussell <tgtruss...@hotmail.com> writes Re: gforth: SDL/OpenGL Graphics Part I
+
+> -- The code available on the site will *not* run as-is on your new
+>    Ubuntu system, and requires a few modifications to get it working.
+>    But, it was worth all of the research when I saw the Observers
+>    tracking across the sky at 400 fps.
+[..]
+> So, that's all for this one.  One more proofread in the morning, and
+> this is off to face wrath or glee (or, *sigh*, indifference).
+
+*Now* you have my attention. What is wrong? I never could get the textures
+and lighting to work.
+
+-marcel
+
+
+Newsgroups: comp.lang.forth
+From: Tim Trussell <tgtruss...@hotmail.com>
+Date: Sun, 31 Jan 2010 14:53:25 -0800 (PST)
+Local: Sun, Jan 31 2010 3:53 pm
+Subject: Re: gforth: SDL/OpenGL Graphics Part I
+
+Marcel-
+
+I performed the following modifications to get the GLForth releases
+r18 and r29 to work-
+
+In the SDL.FS file, modify the start of the file to look like this:
+
+        \ SDL - Library import
+        \ (c) by Gerald Wodni 2008
+
+        c-library sdl                   <-- added line
+        s" SDL" add-lib                 <-- added line
+
+        \c #include <SDL/SDL.h>
+        \c #include <SDL/SDL_keysym.h>
+
+And at the bottom of the file:
+
+        end-c-library                   <-- added line
+
+        include sdlconstants.fs
+
+In the GL.FS file:
+
+        \ GL - Library import
+        \ (c) by Gerald Wodni 2008
+
+        c-library gl                    <-- added line
+        s" GL" add-lib                  <-- added line
+        s" GLU" add-lib                 <-- added line
+
+        \c #if defined(__APPLE__) && defined(__MACH__)
+        \c      #include <OpenGL/gl.h>
+        \c      #include <OpenGL/glu.h>
+        \c #else
+        \c      #include <GL/gl.h>
+        \c      #include <GL/glu.h>
+        \c #endif
+
+And at the bottom of the file:
+
+        end-c-library                   <-- added line
+
+        include glconstants.fs
+
+Next, there are a pair of definitions in the SDLCONSTANTS.FS file:
+
+        $       constant SDL_ALLEVENTS
+        $       constant SDL_ALL_HOTKEYS
+
+I simply commented these out.  I did some research into the SDL
+settings, and found that both of these are typically (in the files
+that I found) set to a value of 1, but they are not currently used
+in this demo.
+
+The final change is to ignore the file GAMELOADER.FS, and simply
+load the demo directly with 'include game.fs' instead.
+
+All the lighting appears to match what is shown in the screen shots
+that are on the GLForth web page.
+
+I made a mistake when playing with the CUBE settings, and tried a
+value of 1000.  I did not realize until then that the program was
+going to draw 1000^3 cubes.  Had to close the terminal on that one.
+A value of 10 (for 1000 cubes) is a much more realistic value.
+
+The above modifications were done on an Ubuntu v9.10 i386 release,
+with gforth-0.7.0, SDL and the OpenGL libraries all downloaded from
+the Ubuntu repositories.
+
+Tim
+
+
+
+Newsgroups: comp.lang.forth
+From: Josh Grams <j...@qualdan.com>
+Date: Wed, 03 Feb 2010 13:33:37 GMT
+Local: Wed, Feb 3 2010 6:33 am
+Subject: Re: gforth: SDL/OpenGL Graphics Part I
+
+Tim Trussell wrote:
+
+> You will occasionally need to delete the contents of the directory:
+
+>         ~/.gforth/libcc-named
+
+Yeah, named modules are for stable interfaces.  For development, you
+want an unnamed module.  Remove `c-library` and `end-c-library`.  See
+5.25.4 Defining Library Interfaces in the gforth manual.
+
+It would be nice if there was an option to recompile only if something
+changed, but...right now there isn't.
+
+--Josh
+
+
+
+Newsgroups: comp.lang.forth
+Followup-To: comp.lang.forth
+From: Bernd Paysan <bernd.pay...@gmx.de>
+Date: Wed, 03 Feb 2010 15:09:18 +0100
+Local: Wed, Feb 3 2010 7:09 am
+Subject: Re: gforth: SDL/OpenGL Graphics Part I
+
+Josh Grams wrote:
+> Tim Trussell wrote:
+
+>> You will occasionally need to delete the contents of the directory:
+
+>>         ~/.gforth/libcc-named
+
+> Yeah, named modules are for stable interfaces.  For development, you
+> want an unnamed module.  Remove `c-library` and `end-c-library`.  See
+> 5.25.4 Defining Library Interfaces in the gforth manual.
+
+> It would be nice if there was an option to recompile only if something
+> changed, but...right now there isn't.
+
+The solution is probably to move the previous .c file to a backup file,
+write the new one, diff the both with -c, and check for the result.  But
+yes, it's not implemented right now.
+
+-- 
+Bernd Paysan
+"If you want it done right, you have to do it yourself"
+http://www.jwdt.com/~paysan/
+
+
+
+Newsgroups: comp.lang.forth
+From: Tim Trussell <tgtruss...@hotmail.com>
+Date: Wed, 3 Feb 2010 16:58:25 -0800 (PST)
+Local: Wed, Feb 3 2010 5:58 pm
+Subject: Re: gforth: SDL/OpenGL Graphics Part I
+
+On Feb 3, 7:09 am, Bernd Paysan <bernd.pay...@gmx.de> wrote:
+
+- Hide quoted text -
+- Show quoted text -
+> Josh Grams wrote:
+> > Tim Trussell wrote:
+
+> >> You will occasionally need to delete the contents of the directory:
+
+> >>         ~/.gforth/libcc-named
+
+> > Yeah, named modules are for stable interfaces.  For development, you
+> > want an unnamed module.  Remove `c-library` and `end-c-library`.  See
+> > 5.25.4 Defining Library Interfaces in the gforth manual.
+
+> > It would be nice if there was an option to recompile only if something
+> > changed, but...right now there isn't.
+
+> The solution is probably to move the previous .c file to a backup file,
+> write the new one, diff the both with -c, and check for the result.  But
+> yes, it's not implemented right now.
+
+> --
+
+Ok, for a test, I compiled a file I wrote yesterday, and checked the
+contents of the ~/.gforth/libcc-named directory to see what was the
+result of the compilation process.
+
+After the compilation of sdl-tut01.fs by gforth (sdl-tut01 does not
+invoke OpenGL) the contents were as follows:
+
+/.gforth
+  /libcc-named
+    /.libs
+      sdl.a
+      sdl.la
+      sdl-lai
+      sdl.o
+      sdl.so
+      sdl.so.0
+      sdl.so.0.0.0
+    sdl.c
+    sdl.la
+    sdl.lo
+    sdl.o
+
+So, the next check was to compile the 3ddemo.fs file (which does call
+OpenGL routines) which gave the following results:
+
+/.gforth
+  /libcc-named
+    /.libs
+      gl.a
+      gl.la
+      gl.lai
+      gl.o
+      gl.so
+      gl.so.0
+      gl.so.0.0.0
+      sdl.a
+      sdl.la
+      sdl-lai
+      sdl.o
+      sdl.so
+      sdl.so.0
+      sdl.so.0.0.0
+    gl.c
+    gl.la
+    gl.lo
+    gl.o
+    sdl.c
+    sdl.la
+    sdl.lo
+    sdl.o
+
+Since I was on a roll, I compiled the glforth r18 and r29 code, and
+the results in the /libcc-named directory were the same as for the
+3ddemo compilation.
+
+The same names are used for the SDL files in all four programs.
+
+Obviously, the contents of those files are different, but there
+doesn't seem to be an obvious way to tell them apart, from the point
+of view of gforth determining at compile time if the correct file is
+being accessed.
+
+The contents of the SDL.C file that is created by the libcc interface
+from compiling sdl-tut01.fs is as follows:
+
+#include <gforth/0.7.0/libcc.h>
+#include <SDL/SDL.h>
+#include <SDL/SDL_keysym.h>
+void sdl_LTX_gforth_c_SDL_Init_n_n(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_SetVideoMode_nnnn_a(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_Quit__v(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_LoadBMP_a_a(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_FreeSurface_a_v(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_BlitSurface_aaaa_n(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_Flip_a_n(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_Delay_n_v(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_ShowCursor_n_n(GFORTH_ARGS)
+void sdl_LTX_gforth_c_SDL_WM_SetCaption_aa_v(GFORTH_ARGS)
+
+I removed all the code between the "{}" braces, as the header info
+is what we are really concerned with here.
+
+As you can see, all that is present is the listing of the SDL code
+that is being compiled.  There is nothing to say that this is in any
+way a dependant part of the sdl-tut01.fs wordset.
+
+...
+
+The concept of a pre-processor comes to mind, that could access a
+file that the programmer has to create and maintain as the program
+being worked on matures.  A descriptor file could be used, that could
+loosely be called a 'project' file, I suppose, since it would serve
+a similar function to the Project construct in IDEs like Code::Blocks
+(and other such IDEs).
+
+So, instead of
+
+        include sdl-tut01.fs
+
+we would use
+
+        project sdl-tut01.prj
+
+(as an example).
+
+As I see it, the only time-stamp comparison that can be done is with
+the source files against the compiled SDL and OpenGL code, since
+there is no end-result binary file that is created (gforth compiles
+into memory, not to a disk file, and the dictionary words are not
+time-stamped).
+
+While I would be delighted to use such a system - if it existed - I
+would be just as happy using the widget that I mentioned in my column
+that would simply do an operating system call to remove the contents
+of the specified directory. The program compilation process is so
+fast in Forth that the extra three to ten seconds that gcc uses to
+compile the SDl/OpenGL files gives you time to take a drink or eat a
+Cheeto after hitting the carriage return.
+
+A second concept, that could be called "Fire and Forget", comes to
+mind, wherein the external code is compiled, linked into gforth, and
+then the files are deleted from the drive immediately.
+
+The last thing that comes to mind (at the moment) is that it might be
+possible to simply include a command-line option to the invocation
+of gcc that tells it to build from scratch even if it thinks all the
+files are up to date.
+
+
+
+Newsgroups: comp.lang.forth
+From: Tim Trussell <tgtruss...@hotmail.com>
+Date: Thu, 4 Feb 2010 20:52:09 -0800 (PST)
+Local: Thurs, Feb 4 2010 9:52 pm
+Subject: Re: gforth: SDL/OpenGL Graphics Part I
+
+It occurred to me that there was a simpler way to generate the
+code in a way that wouldn't interfere with my other programs also
+using the libcc interface.
+
+In the SDL.FS file, we create a library interface with:
+
+        c-library sdl
+        s" SDL" add-lib
+        ....
+        .... list of functions to include
+        ....
+        end-c-library
+
+The SDL.FS file for my sdl-tut01.fs program contains:
+
+c-library sdl
+s" SDL" add-lib
+\c #include <SDL/SDL.h>
+\c #include <SDL/SDL_keysym.h>
+c-function sdl-init           SDL_Init          n -- n
+c-function sdl-set-video-mode SDL_SetVideoMode  n n n n -- a
+c-function sdl-quit           SDL_Quit          -- void
+c-function sdl-loadbmp        SDL_LoadBMP       a -- a
+c-function sdl-freesurface    SDL_FreeSurface   a -- void
+c-function sdl-blitsurface    SDL_BlitSurface   a a a a -- n
+c-function sdl-flip           SDL_Flip          a -- n
+c-function sdl-delay          SDL_Delay         n -- void
+c-function sdl-show-cursor    SDL_ShowCursor    n -- n
+c-function sdl-wm-set-caption SDL_WM_SetCaption a a -- void
+end-c-library
+
+while the SDL.FS file for my sdl-tut02.fs program contains:
+
+c-library sdl
+s" SDL" add-lib
+\c #include <SDL/SDL.h>
+\c #include <SDL/SDL_keysym.h>
+c-function sdl-init           SDL_Init          n -- n
+c-function sdl-set-video-mode SDL_SetVideoMode  n n n n -- a
+c-function sdl-quit           SDL_Quit          -- void
+c-function sdl-loadbmp        SDL_LoadBMP       a -- a
+c-function sdl-freesurface    SDL_FreeSurface   a -- void
+c-function sdl-blitsurface    SDL_BlitSurface   a a a a -- n
+c-function sdl-flip           SDL_Flip          a -- n
+c-function sdl-delay          SDL_Delay         n -- void
+c-function sdl-displayformat  SDL_DisplayFormat a -- a
+c-function sdl-show-cursor    SDL_ShowCursor    n -- n
+c-function sdl-wm-set-caption SDL_WM_SetCaption a a -- void
+end-c-library
+
+When compiled, the files generated in ~/.gforth/libcc-named are:
+
+/.gforth
+  /libcc-named
+    /.libs
+      sdl.a
+      sdl.la
+      sdl-lai
+      sdl.o
+      sdl.so
+      sdl.so.0
+      sdl.so.0.0.0
+    sdl.c
+    sdl.la
+    sdl.lo
+    sdl.o
+
+The same file names for both series of compilations are generated.
+
+The only change between the two SDL.FS files is the addition of the
+sdl-displayformat function in the version for sdl-tut02.fs, but this
+causes an error if I have compiled and run sdl-tut01 before I run
+sdl-tut02, as it appears that gcc thinks that the files are up to
+date, and does not compile the SDL.C file that is generated again.
+
+(I am saying *appears* because I am assuming that gcc thinks that the
+files are up to date, and so does not recompile them. I could be
+incorrect in this assumption.)
+
+So, what occurred to me is that we can change the name of the
+c-library that we are defining in the SDL.FS file.
+
+If I change the library name in the SDL.FS file for my sdl-tut01.fs
+program to:
+
+        c-library sdl_t01
+
+and the name in the SDL.FS file for my sdl-tut02.fs program to:
+
+        c-library sdl_t02
+
+and then compile them both, I get the following in the directory
+~/.gforth/libcc-named:
+
+/.gforth
+  /libcc-named
+    /.libs
+      sdl_t01.a
+      sdl_t01.la
+      sdl_t01.lai
+      sdl_t01.o
+      sdl_t01.so
+      sdl_t01.so.0
+      sdl_t01.so.0.0.0
+      sdl_t02.a
+      sdl_t02.la
+      sdl_t02.lai
+      sdl_t02.o
+      sdl_t02.so
+      sdl_t02.so.0
+      sdl_t02.so.0.0.0
+    sdl_t01.c
+    sdl_t01.la
+    sdl_t01.lo
+    sdl_t01.o
+    sdl_t02.c
+    sdl_t02.la
+    sdl_t02.lo
+    sdl_t02.o
+
+This appears to eliminate the conflict that was making me delete the
+~/.gforth/libcc-named directory between compilation sequences.
+
+In the tutorials I am coding, I am adding functions incrementally
+as each tutorial covers new SDL functions, so I have been creating
+separate SDL.FS files for each tutorial as they are worked on.
+
+Of course, if I also change the name of the SDL.FS file to SDL_T01.FS
+for my sdl-tut01.fs program, and so on for the succeeding tutorials,
+this would eliminate the possible confusion of having multiple copies
+of SDL.FS on the drive - with each one potentially different from
+every other one.
+
+The same problem/solution sequence applies for the OpenGL files also.
+
+Tim
+
+
+
+Newsgroups: comp.lang.forth
+From: an...@mips.complang.tuwien.ac.at (Anton Ertl)
+Date: Fri, 05 Feb 2010 18:03:42 GMT
+Local: Fri, Feb 5 2010 11:03 am
+Subject: Re: gforth: SDL/OpenGL Graphics Part I
+
+Tim Trussell <tgtruss...@hotmail.com> writes:
+>On Feb 3, 7:09=A0am, Bernd Paysan <bernd.pay...@gmx.de> wrote:
+>> > It would be nice if there was an option to recompile only if something
+>> > changed, but...right now there isn't.
+
+>> The solution is probably to move the previous .c file to a backup file,
+>> write the new one, diff the both with -c, and check for the result.
+
+Or maybe just store the Forth source file(s) involved somewhere (maybe
+generate a Makefile?) and regenerate if the Forth source file is newer
+than the .c file (or if the Forth source files involved have changed,
+to cover the case below).
+
+OTOH, letting the programmer have control over this instead of doing
+it automagically is a typical Forth approach.
+
+>The same names are used for the SDL files in all four programs.
+
+>Obviously, the contents of those files are different
+
+That's the mistake.  If they are different, different interface names
+should be used (e.g., sdl-glforth18, sdl-glforth29 etc.).
+
+The idea behind the caching is that the interface is stable and you
+always get the same C files and all the other stuff that comes from
+that, so we don't need to regenerate all this stuff all the time.  And
+the idea is to let the Forth programmer control this through the
+interface name.  Apparently this did not come across clearly in the
+documentation.  Maybe we should bite the bullet and implement the
+automagic ideas discussed above.
+
+OTOH, once we deliver the common interfaces with Gforth, you won't
+have to write your own SDL interface, and maybe these kinds of
+problems will be sufficiently rare that this automagic does not pay
+off.
+
+>The contents of the SDL.C file that is created by the libcc interface
+>from compiling sdl-tut01.fs is as follows:
+...
+>As you can see, all that is present is the listing of the SDL code
+>that is being compiled.  There is nothing to say that this is in any
+>way a dependant part of the sdl-tut01.fs wordset.
+
+You lost me here.
+
+>A second concept, that could be called "Fire and Forget", comes to
+>mind, wherein the external code is compiled, linked into gforth, and
+>then the files are deleted from the drive immediately.
+
+Just comment out the "interface" and "end-interface" lines, and you
+are in this kind of mode (although it works a little differently).
+
+>The last thing that comes to mind (at the moment) is that it might be
+>possible to simply include a command-line option to the invocation
+>of gcc that tells it to build from scratch even if it thinks all the
+>files are up to date.
+
+Neither libtool nor gcc check this.  The caching is done by libcc, and
+is currently based only on the interface name.  If you don't use an
+interface name, you don't get caching.
+
+- anton
+-- 
+M. Anton Ertl  http://www.complang.tuwien.ac.at/anton/home.html
+comp.lang.forth FAQs: http://www.complang.tuwien.ac.at/forth/faq/toc.html
+     New standard: http://www.forth200x.org/forth200x.html
+   EuroForth 2009: http://www.euroforth.org/ef09/
+
+		
+
+
+Newsgroups: comp.lang.forth
+From: an...@mips.complang.tuwien.ac.at (Anton Ertl)
+Date: Fri, 05 Feb 2010 18:26:37 GMT
+Local: Fri, Feb 5 2010 11:26 am
+Subject: Re: gforth: SDL/OpenGL Graphics Part I
+
+Tim Trussell <tgtruss...@hotmail.com> writes:
+>The only change between the two SDL.FS files is the addition of the
+>sdl-displayformat function in the version for sdl-tut02.fs, but this
+>causes an error if I have compiled and run sdl-tut01 before I run
+>sdl-tut02, as it appears that gcc thinks that the files are up to
+>date, and does not compile the SDL.C file that is generated again.
+
+Right, except that it's libcc (not gcc) that thinks that sdl.c and
+everything that follows from it is up-to-date.
+
+>So, what occurred to me is that we can change the name of the
+>c-library that we are defining in the SDL.FS file.
+
+>If I change the library name in the SDL.FS file for my sdl-tut01.fs
+>program to:
+
+>        c-library sdl_t01
+
+>and the name in the SDL.FS file for my sdl-tut02.fs program to:
+
+>        c-library sdl_t02
+
+Yes, that's the way the interface names are intended to be used.  A
+different name for each different interface.
+
+Alternatively, for this case where the interfaces you use are subsets
+of the same interface, you could use the same sdl.fs for the whole
+interface in all the tutorials, and then use the same interface name.
+The plan is that Gforth includes interface files for all the usual
+stuff in the next release.
+
+- anton
+-- 
+M. Anton Ertl  http://www.complang.tuwien.ac.at/anton/home.html
+comp.lang.forth FAQs: http://www.complang.tuwien.ac.at/forth/faq/toc.html
+     New standard: http://www.forth200x.org/forth200x.html
+   EuroForth 2009: http://www.euroforth.org/ef09/
+

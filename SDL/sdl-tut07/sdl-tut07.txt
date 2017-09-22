@@ -1,0 +1,520 @@
+---[ gforth: SDL/OpenGL Graphics Part VII ]-----------[03/27/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column, as with the rest of this series of columns, will be 
+posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut07.zip
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+So far, we have gone through the following in this series on SDL:
+
+     1st - getting gforth with SDL installed              02/05/2010
+     2nd - displaying a BMP image                         02/07/2010
+     3rd - Coding a PutPixel primitive                    02/18/2010
+     4th - Coding additional primitives                   02/22/2010
+     5th - A basic SDL library                            02/26/2010
+     6th - VBoll/Animation demo                           02/28/2010
+
+Now we will implement some of the SDL TrueType Font functions which
+we installed (if you followed my first column and are running gforth
+under Linux, and installed the libsdl-ttf2.0-0 package).
+
+If you do not have the SDL_ttf library installed, now is the time.
+
+It would also be a good time to download the SDL TTF documentation,
+which can be found at:
+
+                 http://jonatkins.org:8080/SDL_ttf/
+or
+        http://www.libsdl.org/projects/SDL_ttf/docs/index.html
+or
+                http://jcatki.no-ip.org:8080/SDL_ttf/
+
+The documentation gives the specifics on how each of the functions
+are supposed to be used, as well as possible options that I will not
+be getting into.
+
+---[ Glossary ]------------------------------------------------------
+
+For the context of this column we have the following meanings:
+
+Interface - code definitions to allow gforth to access a C library.
+
+Library   - code definitions that facilitate using the C library
+            functions defined in the related Interface.
+
+---[ Before We Start ]-----------------------------------------------
+
+Due to various copyright issues with fonts, you will have to locate
+the fonts you wish to use - probably already installed on your
+computer.
+
+In Windows XP, I have them in the directory:
+
+        C:\WINDOWS\Fonts
+
+In my Ubuntu Linux system, they seem to be all over the place.  An
+easy way to find them is to open a terminal window, go full screen
+with the window (the directory paths get a bit long in Linux) and
+enter the command:
+
+        locate ttf <cr>
+
+On my system I copied (not moved) the fonts from:
+
+  /var/lib/defoma/gs.d/dirs/fonts/Times_New_Roman.ttf
+  /var/lib/defoma/gs.d/dirs/fonts/Times_New_Roman_Bold.ttf
+  /var/lib/defoma/gs.d/dirs/fonts/Times_New_Roman_Bold_Italic.ttf
+  /var/lib/defoma/gs.d/dirs/fonts/Times_New_Roman_Italic.ttf
+
+to my ~/sdl-tut07/ttf-fonts directory.
+
+Other than that, there are lots of free TrueType fonts available on
+the internet - search for "free ttf fonts".  I just got 2.34 million
+hits on that search.
+
+The TTF Library functions will work with fonts from either Windows or
+Linux systems. (I am *not* suggesting there is a difference, but I am
+also not suggesting that they are identical - just that the routines
+work with fonts from both operating systems.)
+
+The sdl-tut07.fs code should compile perfectly, but if you do not
+have the correctly named fonts in the sdl-tut07/ttf-fonts directory,
+the code will abort to the terminal window as soon as you execute it.
+So, either copy the fonts to <sdl-tut07/ttf-fonts>, or change the
+path names in the TTF-x string definitions *before* running the demo.
+
+---[ About Zero-Delimited Strings ]----------------------------------
+
+A string being passed to one of the SDL or TTF functions has to be in
+the format convention that the C functions expect to use.
+
+By convention, a Forth string, when defined, occupies the number of
+bytes specified by the returned length parameter.  For example,
+
+        s" ttf-fonts/Times_New_Roman.ttf"
+
+places an address and length byte onto the stack, which tell your
+program the two specifics Forth needs to work with the string data.
+The length of the above string is 29 bytes.
+
+C strings, on the other hand, are referenced only by the address of
+the string.  A length byte is not implemented.  Instead, C appends a
+zero byte value which denotes the end of the string data.
+
+A simple example to display a Forth string:
+
+        : Print-Forth-String ( *str len -- )
+          0 do
+            dup i + C@ emit
+          loop
+          drop
+        ;
+
+A simple example to display a zero-delimited string:
+
+        : Print-Zero-Delimited-String ( *str -- )
+          begin
+            dup C@ 0>                 \ repeat until 0 byte found
+          while
+            dup C@ emit               \ emit character
+            1+                        \ increment pointer
+          repeat
+          drop
+        ;
+
+To convert a Forth string to a C string is a simple matter of adding
+an extra character to the end of the Forth string, which we will
+later convert to a zero byte value using the <Terminate-String>
+function:
+
+        s" ttf-fonts/Times_New_Roman.ttf0"
+
+There are a number of different ways to accomplish this, but what I
+am choosing to do is to put a "0" at the end of each string as I 
+define it in the source code, which shows what it will become when 
+passed to a function that is accessing one of the C library routines.
+
+If you do *not* add the extra char to the string, a line of rendered
+text will be missing the last character you meant to have displayed,
+and a filename will be missing the last character, so that you will 
+be getting 'file not found' due to an incorrect filename, because the
+call to <Terminate-String> will convert whatever the last character
+of the string is to a 0 byte value.
+
+---[ Alternate Zero-Delimit Method ]---------------------------------
+
+If zero-delimiting the string in this manner does not work for you,
+another method is to code a function that will copy the string to a
+temporary buffer, append the zero byte to the end of the string, and
+then pass the address of the temporary buffer as the string address
+to the Interface function:
+
+        : Zero-Delimit-String ( *str len -- *str )
+          0 here 2 pick 1+ !    \ *str len
+          here swap cmove       \
+          here
+        ;
+
+This example uses the top of dictionary address <here> as a temporary
+buffer location.  It sets the address at <here+len> to 0, and then
+copies the string to <here>. It returns the top of dictionary address
+as the new string buffer pointer.
+
+The address of a buffer you have already allotted could also be used:
+
+        create work-string here 256 dup allot 0 fill
+
+        : Zero-Delimit-String ( *str len -- *str )
+          0 work-string 2 pick 1+ !                  \ zero end byte
+          work-string swap cmove                \ copy source string
+          work-string                        \ return buffer address
+        ;
+
+        : 0$ Zero-Delimit-String ;   \ simple alias - easier to type
+
+There are many different ways that zero-delimiting a string can be
+accomplished.  How you wish to do it is up to you.
+
+---[ TTF Interface Subset ]--------------------------------------------
+
+Going through the TTF documentation, there are quite a few functions
+available for working with TrueType fonts that I will not be getting
+to.  We will be working with the following subset of the available
+functions:
+
+        ttf-init
+        ttf-quit
+        ttf-openfont
+        ttf-closefont
+        ttf-rendertext-solid
+        ttf-rendertext-shaded
+
+---[ ttf-init ( -- 0/-1 ) ]---
+
+This function is called to initialize the TrueType subsystems.
+
+It can be called before or after InitGraph is used to initialize the
+SDL Library, though I prefer to call it immediately after I have
+initialized the SDL subsystems.
+
+It must be called prior to use of the ttf library functions.
+
+Returns: 0 on success; -1 on an error.
+
+---[ ttf-quit ( -- ) ]---
+
+This function is used to shut down the ttf subsystems.
+
+I prefer to call this immediately before calling CloseGraph, which
+shuts down the SDL subsystems.
+
+Returns: No return values.
+
+---[ ttf-openfont ( *fname ptsize -- *ttf ) ]---
+
+This function is used to open a font file, load it into memory, and
+convert it to the specified point size (pixel height) for use in your
+program.
+
+It requires a zero-delimited string with the name of the font to be
+loaded (including path if necessary), and the point size you want to
+have the font set to.
+
+Returns: Pointer to the font struct on success; 0 on an error.
+
+---[ ttf-closefont ( *ttf -- ) ]---
+
+This function closes a font file.
+
+Returns: No return values.
+
+---[ ttf-rendertext-solid ( *font *text *color -- *dst ) ]---
+
+This function renders - that is, convert to graphics pixels - the
+text string passed to it in <*text>.
+
+The <*font> parameter points to an opened font (via ttf-openfont).
+
+The <*text> parameter points to a zero-delimited string of characters
+to be rendered - converted - for display.
+
+The <*fg> parameter points to a four-byte SDL_Color struct that
+defines the r/g/b/a palette elements to be used.
+
+Returns: Pointer to an SDL surface on success; 0 on an error. 
+
+The size of the SDL surface is the width/height of the rendered text,
+which can now be copied to the display surface of your choice, and 
+all of the surface information is available to you by accessing the
+sdl-surface struct for the returned surface.
+
+The surface needs to be released when you are done with it, using the
+sdl-freesurface function.
+
+---[ ttf-rendertext-shaded ( *font *text *fg *bg -- *dst ) ]---
+
+The same as ttf-rendertext-solid, but allowing you to specify the
+background color to render the text onto.
+
+Returns: Pointer to an SDL surface on success; 0 on an error. 
+
+---[ TTF Library ]---------------------------------------------------
+
+In order to make it simpler to use the SDL_ttf Interface, I have 
+written a number of functions:
+
+  : TTFLib-Version     ( -- )
+  : Load-TTF           ( *fname flen ptsize -- *ttf )
+  : Apply-TTF-Surface  ( x y *src *dst -- )
+  : FRender-Text       { *str _len *fname _flen _size *c -- }
+  : FRender-Close      ( -- )
+  : FWriteAt        { *str _len *fname _flen _size _x _y *c *dst -- }
+  : FWriteCenter       { *str _len *fname _flen _size _y _c *dst -- }
+
+which have been placed in the ttflib.fs file.
+
+---[ TTFLib-Version ]---
+
+Displays the current working version of the TTF Library package.
+
+---[ Load-TTF ]---
+
+Loads a TrueType font at a specific point size.
+
+  : Load-TTF ( *fname flen ptsize -- *ttf )
+    >R Terminate-String R> ttf-openfont dup 
+    0= s" Unable to load TTF" Error-End
+  ;
+
+Usage example:
+
+  s" ttf-fonts/Times_New_Roman.ttf0" 28 Load-TTF
+
+Upon a successful operation it leaves the address of the loaded font
+on the stack. An error exits gforth to the terminal.
+
+Load-TTF requires a string/len of the name of the font to load, and
+the point size (pixel height) to convert the font to when it has been
+loaded.  This is the *only* size of the font that is created.
+
+---[Note]------------------------------------------------------------
+As far as I can tell, this is a static operation, so if you require
+different point sizes of the same font, you will have to load each
+point size individually.
+--------------------------------------------------------[End Note]---
+
+The function <Terminate-String> converts the passed gforth string to
+a zero-delimited C-type string.
+
+The string and the point size parameters are then used by the
+<ttf-openfont> function to call the linked TTF_OpenFont C function,
+which loads the specified font and converts it to the specified point
+size.  On success, a pointer to the memory allocated for the new font
+struct is returned.  A 0 value is returned on an error, which will
+be processed by the <Error-End> call and abort to the terminal.
+
+---[ Apply-TTF-Surface ]---
+
+This function is used to copy the surface data of the rendered text
+to the *dst surface, at the specified x,y coordinate.  All functions
+affecting the sdl-blitsurface function apply.
+
+---[ FRender-Text ]---
+
+Calls Load-TTF to load the font, then calls <ttf-rendertext-solid>
+to create the graphic image of the specified text string in the
+selected color.
+
+---[ FRender-Close ]---
+
+Releases the work-surface memory, and closes the currently opened
+font.
+
+---[ FWriteAt ]---
+
+Displays a string in the desired font, coordinates and color values
+to the *dst surface.
+
+Coded as:
+
+  : FWriteAt { *str _len *fname _flen _size _x _y *c *dst -- }
+    *str _len *fname _flen _size *c FRender-Text
+    _x _y work-surface *dst Apply-Surface      \ copy to dest surface
+    FRender-Close                                \ free work surfaces
+  ;
+
+Usage example:
+
+  s" A TrueType Font demo is a wondrous thing to behold!0"
+  s" ttf-fonts/Times_New_Roman.ttf0"
+  28 0 0 TextColor[] screen-surface FWriteAt
+
+links all of the above functions together to display the current
+string in the font and point size specified 
+
+---[FWriteCenter ]---
+
+Displays a string, centered horizontally on the surface, with all of
+the same characteristics used for FWriteAt.
+
+The surface struct is accessed to get the width of the rendered text,
+which is used to calculate the x coordinate to place the string into
+the center of the surface display line.
+
+Coded as:
+
+  : FWriteCenter { *str _len *fname _flen _size _y _c *dst -- }
+    *str _len *fname _flen _size _c FRender-Text
+    window-screenw 2/ work-surface sdl-surface-w uw@ 2/ -
+    _y work-surface *dst Apply-Surface
+    FRender-Close                                \ free work surfaces
+  ;
+
+Usage example:
+
+  s" Click the 'X' box to exit0"                \ string to render
+  s" ttf-fonts/Times_New_Roman.ttf0"            \ font to use
+  20                                            \ point size to use
+  window-screenh 1- over -                      \ y coordinate
+  TextColor[] screen-surface FWriteCenter       \ color, *dst, go!
+
+
+FWriteCenter performs the same functions as FWriteAt, but computes 
+the x coordinate at run-time to be half the rendered text image width
+subtracted from half the screen width, which will center the rendered
+text on the display surface.
+
+In both FWriteAT and FWriteCenter, the x and y coordinates specify
+the placement of the top/left corner of the rendered text image.
+
+Care should be exercised to ensure that you are not trying to place
+the rendered text below (past) the bottom of the display surface, as
+you would probably be writing to memory that has not been allocated
+to the current surface you are working with.
+
+You should probably not attempt to use a y coordinate greater than
+the calculated value of:
+
+        window-screenh 1- _size -
+
+to ensure this does not happen.
+
+The window-screenh and window-screenw values are set in the call to
+InitGraph, and are globals defined in <sdllib.fs>.
+
+---[ A Second Look at FWriteAt ]-------------------------------------
+
+There are several possible methods of loading the fonts that are to
+be used in your code.
+
+One method is to decide how many different fonts you will need, and
+how many different point sizes of each of these fonts you will want
+to use in your program.  Then, you can load all of those different
+fonts/sizes at one time.  This takes up a lot of memory, but has the
+advantage of them always being ready to use without further disk
+access.
+
+That is not the method used here.
+
+What I do in this code is:
+
+FWriteAt calls FRender-Text, which loads the specified font for each
+line of text being displayed. The data is processed and displayed,
+and then the font is closed.
+
+When FWriteAt is called for the next string to be displayed, it goes
+through the sequence again.  A font is not kept in memory beyond the
+timeframe of when FWriteAt is being executed.
+
+This has the disadvantage of accessing the disk each time a string is
+to be processed, although with disk caching technology, the actual
+hard drive is probably only accessed the first time the font is
+loaded.
+
+This method has the advantage of being able to specify any point size
+that is required without taking up a lot memory.
+
+For this particular demo program, loading all four of the fonts into
+memory is not necessary, while in something like a graphical word
+processing application, having the fonts in memory would probably be
+a requirement.  It all depends on what the programmer wants to do.
+
+---[ A Simple Font Demo ]--------------------------------------------
+
+The TTF library and interface has been coded as separate modules from
+the SDL library and interface, and therefore have to be specifically
+loaded into the source code, as follows:
+
+  require sdllib.fs           --> loads the SDL interface and library
+  require ttflib.fs           --> loads the TTF interface and library
+
+Following this are the normal variable declarations, and then the
+string definitions:
+
+  : TTF-N  s" ttf-fonts/Times_New_Roman.ttf0" ;
+  : TTF-B  s" ttf-fonts/Times_New_Roman_Bold.ttf0" ;
+  : TTF-BI s" ttf-fonts/Times_New_Roman_Bold_Italic.ttf0" ;
+  : TTF-I  s" ttf-fonts/Times_New_Roman_Italic.ttf0" ;
+
+In an application where I might be using a number of different fonts
+that have the four different attributes that the Times New Roman font
+has - Normal, Bold, Bold/Italic and Italic - I would probably make
+the names I used for these strings - TTF-N/TTF-B/TTF-BI/TTF-I - into
+array allocations (ie, create TTF-N 256 allot) which would let me
+store the path and file names into a common, reusable buffer that is
+clearly identifiable with the font style that it represents.
+
+---[ ttfdemo ]---
+
+After all of this, the main demo word, ttfdemo, is looking pretty
+simple - as it actually is.
+
+What it does is initialize the display surface, displays a series of
+lines of text using the FWriteAt call, displays a helpful message to
+tell you how to exit the program using the FWriteCenter call, and
+then goes into a loop that accesses the SDL event system, which waits
+for you to close the display window (or press Alt-F4).
+
+It ran in all four of the color depths - 8-, 16-, 24- and 32-bpp, and
+appears to work fine.
+
+---[ Wrapping It Up ]------------------------------------------------
+
+There are times when all you need is the simple 8x8 font that we had
+at the DOS prompt, so I may add a basic font package based on the
+packed-pixel sprite concept that I used back in one of my earlier
+columns.  Old habits die hard, and there are times when I *really*
+want to use the original PC font text line characters.
+
+---
+
+There is an empty directory in the archive - ttf-fonts - where I put
+my TrueType Fonts for gforth to have easy access.  If you prefer to
+use the current location of the fonts on your system, ie.:
+
+  s" /var/lib/defoma/gs.d/dirs/fonts/Times_New_Roman.ttf0"
+
+then feel free to use that in the TTF-x string definitions.
+
+An enterprising programmer could even create a function that would
+search the drive for the location of each specific file, and use the
+path returned by the function to set the string values.
+
+---
+
+Until my next, go forth and fontificate.
+------------------------------------------[ End of sdl-tut07.txt ]---
+

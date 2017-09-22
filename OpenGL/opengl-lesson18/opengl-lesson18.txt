@@ -1,0 +1,215 @@
+---[ gforth: OpenGL Graphics Lesson 18 ]--------------[08/01/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+This column will be posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     opengl-lesson18.zip
+
+along with all required source files.
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where We Are ]--------------------------------------------------
+
+Read thru the Tutorial for Lesson 18 at
+
+                      www.nehe.gamedev.net
+
+for the description of what is going on with this code.
+
+---[ Additions ]-----------------------------------------------------
+
+Additions to the mini-opengl libcc interface for this lesson are:
+
+glu-cylinder ( quad base top height slices stacks -- )
+
+    Draw a cylinder.
+    
+    Parameter <quad> is a 32-bit pointer; <base>, <top>, <height> are
+    32-bit floating point values; <slices> and <stacks> are integer
+    values.
+
+      quad: Specifies the quadrics object.
+
+      base: Specifies the radius of the cylinder at z = 0
+
+      top: Specifies the radius of the cylinder at z = height
+
+      height: Specifies the height of the cylinder.    					
+
+      slices: Specifies the number of subdivisions around the z axis.
+
+      stacks: Specifies the number of subdivisions along the z axis.
+
+glu-disk ( quad inner outer slices loops -- )
+
+    Draw a disc.
+    
+    Parameter <quad> is a 32-bit pointer; <inner> and <outer> are
+    32-bit floating point values; <slices> and <loops> are integer
+    values.
+    
+      quad: Specifies the quadrics object.
+      
+      inner: Specifies the inner radius of the disk (may be 0).
+      
+      outer: Specifies the outer radius of the disk.
+      
+      slices: Specifies the number of subdivisions around the z axis.
+      
+      loops: Specifies the number of concentric rings about the
+          origin into which the disk is subdivided.
+
+glu-delete-quadric ( *quad -- )
+
+    Deletes a quadric object.
+
+    Parameter <*quad> is a 32-bit pointer.
+    
+      quad: Specifies the quadrics object to be destroyed.
+
+glu-new-quadric ( -- *quad )
+
+    Create a quadric object.
+    
+    Parameters: none.
+    
+    Return value: 32-bit pointer to the created quadric object.
+    A return value of 0 means there was not enough memory to create
+    the quadric object.
+
+glu-partial-disk ( *quad inner outer slices loops start sweep -- )
+
+    Draw an arc of a disc.
+
+    Parameter <*quad> is a 32-bit pointer; <inner>, <outer>, <start>
+    and <sweep> are 32-bit floating point values; <slices> and
+    <loops> are integer values.
+    
+      quad: Specifies the quadrics object.
+
+      inner: Specifies the inner radius of the partial disk
+          (can be 0).
+
+
+      outer: Specifies the outer radius of the partial disk.
+
+
+      slices: Specifies the number of subdivisions around the z axis.
+
+
+      loops: Specifies the number of concentric rings about the
+          origin into which the partial disk is subdivided.
+
+
+      start: Specifies the starting angle, in degrees, of the disk
+          portion.
+
+
+      sweep: Specifies the sweep angle, in degrees, of the disk
+          portion.
+
+glu-quadric-normals ( *quad normal -- )
+
+    Specify what kind of normals are desired for quadrics.
+
+    Parameter <*quad> is a 32-bit pointer; <normal> is an integer
+    value.
+
+      quad: Specifies the quadrics object.
+      
+      normal: Specifies the desired type of normals. Valid values are
+          GLU_NONE, GLU_FLAT, and GLU_SMOOTH.    
+
+glu-quadric-texture ( *quad texture -- )
+
+    Specify if texturing is desired for quadrics.
+
+    Parameter <*quad> is a 32-bit pointer; <texture> is an integer
+    value.
+
+      quad: Specifies the quadrics object.
+
+      texture: Specifies a flag indicating if texture coordinates
+          should be generated.
+
+glu-sphere ( *quad radius slices stack -- )
+
+    Draw a sphere.
+
+    Parameter <*quad> is a 32-bit pointer; <radius> is a 32-bit
+    floating point value; <slices> and <stack> are integer values.
+
+      quad: Specifies the quadrics object.
+
+      radius: Specifies the radius of the sphere.
+
+      slices: Specifies the number of subdivisions around the z axis
+          (similar to lines of longitude)
+
+      stack: Specifies the number of subdivisions along the z axis
+          (similar to lines of latitude)
+
+---[ Installation ]--------------------------------------------------
+
+If you are placing all of the Lessons in one directory, copy these
+three files to that directory:
+
+        opengl-lesson18.fs      - Code Addendum 1
+        opengllib-1.18.fs       - Code Addendum 2
+        mini-opengl-1.18.fs     - Code Addendum 3
+
+This Lesson requires the mini-sdl-1.01.fs file from Lesson 6, as well
+as all of the usual constants definition files.
+
+This Lesson also uses an image file which you can retrieve from the
+NeHe Lesson 18 page at:
+
+      http://nehe.gamedev.net/data/lessons/lesson.asp?lesson=18
+
+or from the opengl-lesson18.zip file that will be posted to the
+Taygeta Forth Archives site listed at the start of this column.
+
+For the files from the opengl-lesson18.zip, extract them to wherever
+you wish to place them, or extract the above three files and the data
+directory into the directory you have placed the previous Lesson
+files.
+
+To use the LibUtil script, set the flag in opengllib-1.18.fs:
+
+        1 constant UseLibUtil
+
+and then run the script to install the files to the ~/.gforth dirs:
+
+        cd <your-directory> <cr>
+        ./libutil.sh -ra <cr>
+        ./libutil.sh -i <cr>
+        gforth
+        include opengl-lesson18.fs
+        lesson18
+
+If you prefer not to use the LibUtil script, set the flag to:
+
+        0 constant UseLibUtil
+
+and then you can execute the Lesson code with:
+
+        cd <your-directory> <cr>
+        gforth
+        include opengl-lesson18.fs
+        lesson18
+
+---[ Next Up ]-------------------------------------------------------
+
+Lesson 19 - Particle Engine Using Triangle Strips
+
+----------------------------------------------------[End Lesson18]---
+

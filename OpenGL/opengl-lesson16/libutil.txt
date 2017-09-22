@@ -1,0 +1,344 @@
+=====================================================================
+          File: libutil.txt
+        Author: Timothy Trussell
+      Revision: 1.01
+          Date: 07/24/2010
+   Description: Library Utility for gforth OpenGL Tutorial Install
+  Linux System: Ubuntu v10.04 LTS i386, kernel 2.6.31-23
+=====================================================================
+
+The libutil.sh file is a Linux bash script, and is designed to aid in
+the installation and re-compilation of the NeHe OpenGL Tutorials that
+I have recoded for gforth.
+
+It has only been tested on the above listed version of Linux.
+
+Use of this utility is optional, as the Tutorial files can be used
+from any directory, but the main purpose of the program is to
+eliminate the need to remove previous libcc interface compilations by
+hand when a new Tutorial is to be installed (or when you have made
+changes to the libcc file of your own, and need to remove the
+existing compilations so the new version will compile/link/run).
+
+Use of an external script file also accomplishes another necessary
+function: in order to compile a newer (or modifed) libcc file after
+you have compiled/linked/run your program with an older version, it
+is necessary to exit gforth to unlink the previous compilation.
+
+If you have downloaded this from the comp.lang.forth newsgroup, there
+is a chance (probability) that the file will not run correctly, due
+to conversion problems (I have to convert to MS-DOS format to get the
+text to post correctly).
+
+What I have had to do is install the FLIP utility, which converts
+text files from/to Linux/Unix and MS-DOS (Windows) formats.
+
+Enter "sudo apt-get install flip" in your terminal to install the
+utility, and then enter "flip -u libutil.sh" to convert the file back
+to the Linux/Unix format.
+
+The other thing you will have to do is set the permissions on the
+file to allow it to be executed.  From the Program Manager (Ubuntu)
+right-click the mouse on the file libutil.sh, select Properties, then
+Permissions, and click the box for 'Allow executing file as program'
+and you will be all set.
+
+The version in the .zip files should not have this problem.
+
+---[Note]------------------------------------------------------------
+If you are NOT making changes to the libcc interface code there is no
+need to exit gforth between compile/run cycles to unlink the libcc
+code. This is only necessary if the libcc definitions have been
+changed so that the new (or modifed) definitions will be compiled.
+
+The libcc interface files being referenced are:
+
+        mini-mixer-1.xx.fs
+        mini-mixer-current.fs
+        mini-opengl-1.xx.fs
+        mini-opengl-current.fs
+        mini-sdl-1.xx.fs
+        mini-sdl--current.fs
+
+These are the files that making changes in would require you to exit
+gforth to unlink the libraries, so that they could be recompiled in
+the next compile/run cycle.
+
+If you *have* modified these files, then you will want to use this
+utiltiy to remove the previous mini_*_lib files.
+--------------------------------------------------------[End Note]---
+
+A basic installation of gforth creates a hidden .gforth directory in
+your /home/<user> directory.  This .gforth directory is where the
+libcc interface files are created, in ~/.gforth/libcc-named.
+A second directory, ~/.gforth/libcc-named/.libs is also created.
+
+(The /libcc-named and /libcc-named/.libs directories are created when
+you compile a libcc interface file, not during gforth installation.)
+
+If the /home/<user>/.gforth directory is not present the script will
+abort, since without that base directory none of the rest of the
+script functions can be executed.
+
+What this script does is to create an additional directory in your
+~/.gforth directory, ~/.gforth/opengl-libs, and copies files from the
+Tutorial distribution to that location.
+
+This is accomplished from the command line by first changing to the
+directory where the distribution is located, and then executing the
+libutil.sh script with one of the commands line options.
+
+Entering ./libutil.sh -? displays the following help:
+
+  LibUtil Usage:
+
+     libutil.sh -i    installs lesson files
+     libutil.sh -l    displays ~/.gforth/.. directories
+     libutil.sh -ra   deletes all mini_*_lib files
+     libutil.sh -ro   deletes compiled mini_opengl_lib files
+     libutil.sh -rm   deletes compiled mini_mixer_lib files
+     libutil.sh -rs   deletes compiled mini_sdl_lib files
+     libutil.sh -kill deletes the following directories:
+                        <~/.gforth/libcc-named>
+                        <~/.gforth/opengl-libs>
+     libutil.sh -?    shows this help
+
+Even this help display is bypassed if the .gforth directory can not
+be found.  You have to be in a Lesson directory when running this
+script.
+
+---[Note]------------------------------------------------------------
+It is expected that gforth has already been installed and the .gforth
+directory has been created in your /home/<user> directory, prior to
+trying to use this script. 
+
+It would also be good for the SDL and OpenGL libraries to have been
+installed on your system already. The libcc files will not compile
+without them installed.
+
+You DID read my "gforth: OpenGL Graphics Part I" column, right?
+
+(The /home/<user>/.gforth directory is NOT where gforth is installed.
+gforth on my system has been installed in the /usr/bin, /usr/lib and
+/usr/share directories.)
+--------------------------------------------------------[End Note]---
+
+If, for some reason, your .gforth directory is located somewhere else
+you will need to edit the libutil.sh script and change the strings to
+reflect what your system uses.
+
+===[ Executing LibUtil ]=============================================
+
+The libutils.sh script file can be run directly from the directory
+where all of the tutorial files are located, or it can be placed into
+the Linux path, a likely place being the /bin directory, so that it
+can be executed without being in the current directory.
+
+It has been designed to be non-Tutorial-specific. It will scan the
+PWD (current working directory) for the latest Tutorial present,
+extract the lesson number from that filename, and install (if you
+have used the <-i> command line option) the files for that Tutorial.
+
+If an <opengl-lesson> file is NOT found, the script will abort.
+
+---[Note]------------------------------------------------------------
+The script actually scans the PWD for the following files:
+
+        mini-opengl-1.xx.fs         OpenGL libcc interface
+        mini-sdl-1.xx.fs            SDL libcc interface
+        glconstants.fs              OpenGL constants
+        sdlconstants.fs             SDL constants
+        sdlkeysym.fs                SDL keyboard constants
+
+and will abort if all of them are not present in the PWD.
+
+For those using the files downloaded from comp.lang.forth, you will
+need to either place the Lesson files into a single directory, or
+copy all of the extra files that were not posted (but were posted for
+a previous Lesson) into each new Lesson directory.
+
+For those using the archive .zip files of the Lessons, all of the
+required files are present in each archive, so just unzip each of the
+Lessons to a separate directory, chdir to that directory, and run the
+LibUtil script from that directory.
+--------------------------------------------------------[End Note]---
+
+The script will handle having ALL of the Tutorials placed in the same
+directory, which should not be a problem, as there will only be three
+new code files for each Tutorial (after the first one), plus a data/
+directory when we get to the sixth Tutorial, and the contents of that
+directory can also be combined with those Tutorials that follow.
+
+===[ Command Line Options ]==========================================
+
+---[ -i: Install lesson files ]--------------------------------------
+
+Usage:  ./libutil.sh -i
+
+This command processes the current directory to verify that all of
+the source files required are present.
+
+It next displays the default locations of the source and destination
+directories, allowing the user to exit if they are not correct, so as
+to modify the libutil.sh strings to match what their system requires.
+
+The next step is to create the /home/<user>/.gforth/opengl-libs
+directory if it does not already exist.
+
+If the mini-opengl-current.fs file already exists in this directory,
+it is now deleted.
+
+A new mini-opengl-current.fs file is created by copying the latest
+libcc interface file in the source directory, mini-opengl-1.xx.fs,
+to it. (All of the mini-opengl libcc files are cumulative, so the
+definitions in the latest file include everything from the previous
+mini-opengl files.  This is why it is important to run this install
+when a new Tutorial is being installed, so that you do not have to
+do this again just to run one of the previous Tutorials.)
+
+The same procedure is followed for the mini-sdl-1.xx.fs and the
+mini-mixer-1.xx.fs files.
+
+The presence of the SDL dependancy files is now checked, and if they
+are not in the destination directory, they are now copied there.
+
+The last step is to remove any compiled mini_*_lib files in the
+directories:
+
+        /home/<user>/.gforth/libcc-named 
+        /home/<user>/.gforth/libcc-named/.libs
+
+The compiled SDL and Mixer files are also removed during this install
+process, if they exist.
+
+All of the compiled _lib files can be specifically removed using the
+additional command parameters decribed below.
+
+---[ -l: Display directories ]---------------------------------------
+
+Usage:  ./libutil.sh -l
+
+This command is informational, and simply displays the contents of
+the following directories:
+
+        /home/<user>/.gforth/libcc-named 
+        /home/<user>/.gforth/libcc-named/.libs
+        /home/<user>/.gforth/opengl-libs
+
+---[ -ra: delete mini-sdl, mini-opengl and mini-mixer-lib files ]----
+
+Usage:  ./libutil.sh -ra
+
+This command is used to remove all compiled mini_*_lib files in the
+directories:
+
+        /home/<user>/.gforth/libcc-named 
+        /home/<user>/.gforth/libcc-named/.libs
+
+The source files in the directory /home/<user>/.gforth/opengl-libs
+are NOT deleted.
+
+---[ -ro: Delete previous mini_opengl_lib files ]--------------------
+
+Usage:  ./libutil.sh -ro
+
+This command is used to remove any compiled mini_opengl_lib files in
+the directories:
+
+        /home/<user>/.gforth/libcc-named 
+        /home/<user>/.gforth/libcc-named/.libs
+
+The source files in the directory /home/<user>/.gforth/opengl-libs
+are NOT deleted.
+
+---[ -rm: Delete previous mini_mixer_lib files ]---------------------
+
+Usage:  ./libutil.sh -rm
+
+This command is used to remove any compiled mini_mixer_lib files in
+the directories:
+
+        /home/<user>/.gforth/libcc-named 
+        /home/<user>/.gforth/libcc-named/.libs
+
+The source files in the directory /home/<user>/.gforth/opengl-libs
+are NOT deleted.
+
+---[ -rs: Delete previous mini_sdl_lib files ]-----------------------
+
+Usage:  ./libutil.sh -rs
+
+This command is used to remove any compiled mini_sdl_lib files in the
+directories:
+
+        /home/<user>/.gforth/libcc-named 
+        /home/<user>/.gforth/libcc-named/.libs
+
+The source files in the directory /home/<user>/.gforth/opengl-libs
+are NOT deleted.
+
+---[ -kill: Delete libcc-named and opengl-libs directories ]---------
+
+Usage:  ./libutil.sh -kill
+
+This command is used to simply remove the ~/.gforth/libcc-named and
+~/.gforth/opengl-libs directories.
+
+The source files in the directory /home/<user>/.gforth/opengl-libs
+ARE deleted with this command.
+
+---[ -?: display help ]----------------------------------------------
+
+Usage:  ./libutil.sh -?
+        ./libutil.sh
+
+This command (as well as not passing a command) will display a usage
+message to the terminal.
+
+===[ Example of Use ]================================================
+
+A typical example of when to use this utility during a normal session
+of programming is when I am coding the additions to the Tutorials, as
+each new Tutorial usually adds new OpenGL functions to explore.
+
+After the changes to the source are made, I would then go back to my
+gforth terminal window, press Ctrl-D to exit to the terminal, and run
+the LibUtil script with:
+
+        ./libutil.sh -ro
+
+to remove the previous mini_opengl_lib.* files in .gforth/libcc-named
+and .gforth/libcc-named/.libs.
+
+(After the first use, the command <./libutil.sh -r> is now in the
+keyboard buffer, so all I do is press the <Up Arrow> to find it in
+the listing, and press <enter> to run it.)
+
+I then <Up Arrow> to re-enter gforth, press the <Up Arrow> to scroll
+through the gforth keyboard buffer to the
+
+        include opengl-lessonxx.fs
+        
+entry, press <enter> to recompile all of the libcc interface code,
+and then <Up Arrow> one last time to <lessonxx> to run the program.
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+Remember, simply deleting the old versions of the compiled libcc code
+(like from a second terminal window) is not enough - you have to exit
+gforth to unlink the code from the gforth system.
+
+If you have only been working on your main graphics code - drawing
+Quads, lines, textures, etc, then it is not necessary to exit gforth
+to remove the libcc interfaces.
+
+ --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+Currently, I use the <gedit> program in Ubuntu for editing my gforth
+source files.  It recognizes the .fs suffix and provides command
+colorization and several other nice features that aid you visually
+while programming, as well as being a multiple file editor (each file
+is opened in a separate tab in the window bar).
+
+=================================================[End libutil.txt]===
+

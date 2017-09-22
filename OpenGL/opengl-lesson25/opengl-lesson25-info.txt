@@ -1,0 +1,19 @@
+=====================================================================
+            File: opengl-lesson25.zip
+          Author: Piotr Cieslak
+   Linux Version: DarkAlloy
+  gForth Version: Timothy Trussell, 05/25/2011
+     Description: Morphing, loading objects
+    Forth System: gforth-0.7.0
+    Linux System: Ubuntu v10.04 LTS i386, kernel 2.6.32-31
+    C++ Compiler: gcc version 4.4.3 (Ubuntu 4.4.3-4ubuntu5)
+=====================================================================
+                         NeHe Productions 
+                      http://nehe.gamedev.net/
+=====================================================================
+                     OpenGL Tutorial Lesson 25
+=====================================================================
+
+        Conversion of NeHe's OpenGL Lesson 25 code for gforth
+
+=====================================================================

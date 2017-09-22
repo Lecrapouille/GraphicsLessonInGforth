@@ -1,0 +1,385 @@
+---[ gforth: SDL/OpenGL Graphics Part III ]-----------[02/18/2010]---
+
+                         by Timothy Trussell
+
+---[ Information ]---------------------------------------------------
+
+Prior to starting, I would suggest that you go to the following link:
+
+                   http://www.libsdl.org/docs.php
+
+which is the SDL Documentation page.  This page has several versions 
+of the SDL dox.
+
+The one I am currently using is the Windows compiled help file:
+
+        SDLRef.chm
+
+which is readable under Ubuntu Linux using the Gnome CHM reader.
+
+If you are using Ubuntu, the Gnome CHM reader can be installed from
+the Synaptic Package Manager.  Enter 'chm' into the search box and 
+select 'gnochm' and apply it.  Then, just double-click on the 
+SDLRef.chm file to bring it up for browsing.  
+
+If you prefer man pages, HTML or the Postscript format, then choose
+the one best suited for your needs.
+
+In any event, you will need to have the SDL documentation available,
+for when my very clear, concise, and otherwise brilliant explanation
+of what the SDL function of the moment is doing makes you go 'huh?'
+
+.. ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ..
+
+This column, as with the rest of this series of columns, will be 
+posted to the Taygeta Forth Achive site:
+
+ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/
+
+in the file:
+
+     sdl-tut03.zip
+
+It may take a little time for the files to be moved to the above
+directory, so keep checking until they have been placed there.
+
+---[ Where Are We ]--------------------------------------------------
+
+In the second column we utilized several of the basic SDL functions
+to display an image stored as a .BMP file to the display surface.
+
+In this column, we will create a PutPixel function, so that we can 
+plot pixels to the display surfaces.  Since there are four pixel 
+depths available:
+
+        1. 8 bits/pixel         (1 byte per pixel)
+        2. 16 bits/pixel        (2 bytes per pixel)
+        3. 24 bits/pixel        (3 bytes per pixel)
+        4. 32 bits/pixel        (4 bytes per pixel)
+
+we need a function that will handle plotting to any of them.
+
+The easiest method would be to simply code a version for each of the
+depths, ie.,
+
+        PutPixel8
+        PutPixel16
+        PutPixel24
+        PutPixel32
+
+and then just hard-code the program to use the one for the selected
+color depth.
+
+A more elegant method would be to code a single version that is
+capable of determining at run-time which depth is in use, and then
+plot the pixels accordingly.
+
+Hmmm. Which should we do.  Decisions, decisions.
+
+Well, my first pass thru this code actually used a combination of the
+two methods, but it occurred to me that since the address calculation
+portion of the code was identical in all four methods, all that had
+to be handled separately was the actual scaling of the x coordinate,
+and the plotting of the pixels themselves, which leaves us with a
+very scaled down function, representing the more elegant version that
+I mention above.
+
+I will start this off by showing the entire PutPixel function:
+
+  : PutPixel { *dst _x _y _pixel -- }
+    \ Lock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-locksurface drop
+    then
+    \ Calculate the target address of the pixel
+    *dst sdl-surface-pixels @     \ *pixels            32-bit pointer
+    *dst sdl-surface-pitch sw@    \ *pixels swidth       16-bit value
+    _y * +                        \ *pixels[swidth*y]
+    *dst sdl-surface-format @     \ *pixels[swidth*y] *format
+    sdl-pixelformat-bytesperpixel \ *pixels[swidth*y] *format->bytepp
+    C@                            \ *pixels[swidth*y] bytepp
+    dup >R                        \ *pixels[swidth*y] bytepp
+    _x * +                        \ *pixels[ofs]
+    R>                            \ *pixels[ofs] bytepp
+    case                          \ *pixels[ofs]
+      1 of _pixel swap C! endof
+      2 of _pixel swap w! endof
+      3 of SDL_BYTEORDER SDL_BIG_ENDIAN = if
+             _pixel 16 RSHIFT over C! 1+
+             _pixel 8 RSHIFT over C! 1+
+             _pixel swap C!
+           else
+             _pixel over C! 1+
+             _pixel 8 RSHIFT over C! 1+
+             _pixel 16 RSHIFT swap C!
+           then
+        endof
+      4 of _pixel swap ! endof
+    endcase
+    \ Now unlock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-unlocksurface
+    then
+  ;
+---[ How PutPixel Functions ]----------------------------------------
+
+PutPixel requires four parameters:
+
+  : PutPixel { *dst _x _y _pixel -- }
+
+where:
+
+        *dst            the destination surface pointer
+        _x              the x coordinate
+        _y              the y coordinate
+        _pixel          the pixel value
+
+---[Note]------------------------------------------------------------
+I have used the gforth local variables syntax here, so each of the
+parameters to PutPixel is given the name we assign to it, for use in
+our code definitions. These exist only within the context of the
+PutPixel :..; definition block.
+--------------------------------------------------------[End Note]---
+
+Now, the first thing we have to do before trying to access any of the
+surface information is to see if the destination surface has to be
+locked.  Locking prevents other threads from accessing the surface
+for the time that we need to have access to it.  When we are done
+plotting our pixel(s), we will then have to unlock the surface prior
+to exitting the PutPixel function.
+
+Locking and unlocking calls must always be paired.  A surface may be
+locked repeatedly, but must also be unlocked as many times as it has
+been locked.  Reference the SDL dox on the SDL_LockSurface and 
+SDL_UnlockSurface functions for more information on this - though you
+may have to Google the net to find more information than what I have
+already given above.
+
+To determine if the surface has to be locked we will use the function
+sdl-mustlock, which returns a boolean TRUE if the surface has to be
+locked, and a FALSE if the surface can be accessed without locking.
+
+    \ Lock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-locksurface drop
+    then
+
+---[Note]------------------------------------------------------------
+SDL_MUSTLOCK, in the SDL C++ source code, is actually just a macro,
+not an actual compiled function.  Therefore, there is not a function
+that can be assigned to it in the sdl.fs file.  Since all it does is
+to check the status of several SDL flags, I have coded the macro as a 
+Forth function, returning a boolean flag.
+
+Since it is to be part of the gforth SDL interface, it is included at
+the end of the sdl.fs file *after* the end-library statement.
+--------------------------------------------------------[End Note]---
+
+With the surface ready for access, we are set to calculate the offset
+position of the pixel to be plotted.
+
+First, we will get the address pointer to the start of the data array
+representing the screen memory of the surface:
+
+    *dst sdl-surface-pixels @     \ *pixels            32-bit pointer
+
+Next, we will get the screen width value.  This value is different
+for the individual color depths that are available.
+
+    *dst sdl-surface-pitch sw@    \ *pixels swidth       16-bit value
+
+For the 1024x768 resolutions, the screen width field can have the
+following possible values:
+
+        1024x768x8  - screen width is 1024 (1 byte/pixel)
+        1024x768x16 - screen width is 2048 (2 bytes/pixel)
+        1024x768x24 - screen width is 3072 (3 bytes/pixel)
+        1024x768x32 - screen width is 4096 (4 bytes/pixel)
+
+This value is computed at run-time when the surface is created, and
+is stored in the <pitch> field of the sdl-surface% struct as a 16-bit
+value. The gforth function <sw@> retrieves a 16-bit value from the
+specified memory address.
+
+We now multiply the screen width <swidth> value by the y coordinate
+to get the vertical offset into the surface for the pixel:
+
+    _y * +                        \ *pixels[swidth*y]
+
+The next step is to scale the x coordinate by the bytes per pixel 
+value for the surface. We do this by accessing the PixelFormat struct
+that is pointed at by:
+
+    *dst sdl-surface-format @     \ *pixels[swidth*y] *format
+
+and then access the bytes per pixel field of the PixelFormat struct:
+
+    sdl-pixelformat-bytesperpixel \ *pixels[swidth*y] *format->bytepp
+    C@                            \ *pixels[swidth*y] bytepp
+
+The possible value of the bytes per pixel field are:
+
+        1       for 8-bit color depth
+        2       for 16-bit color depth
+        3       for 24-bit color depth
+        4       for 32-bit color depth
+
+Now, these number do not represent a simple ENUM listing.  They
+represent the number of bytes - therefore the number of colors - that
+each mode is capable of displaying:
+
+        1 - 8-bits  - 256 colors
+        2 - 16-bits - 65,536 colors
+        3 - 24-bits - 16,777,215 colors
+        4 - 32-bits - 4,294,967,295 colors
+
+In an 8-bit color depth mode, SDL creates a palette to be used with
+the surface you have created.  This works just like it does for the
+Mode 13h 320x200x8 basic VGA resolution I have worked with in all of
+my previous columns.  Even though your computer display is probably
+in either a 24-bit or 32-bit color depth resolution, the 8-bit 256
+color mode will work correctly.  This is part of the magic of using
+the SDL video subsystem.  We do not have to worry about converting a
+256 color palette to the 16-, 24- or 32-bit equivalent color set.
+
+In the other three color depths, the pixel value contains the color
+values to be used for the pixel to be plotted.
+
+We will be needing a copy of the bytes per pixel value, so we will
+DUP it and move the copy to the Return Stack for the moment:
+
+    dup >R                        \ *pixels[swidth*y] bytepp
+
+The last step of the address calculation is done by multiplying the
+x coordinate by the bytes per pixel value:
+
+    _x * +                        \ *pixels[ofs]
+
+leaving the final target address on the stack.
+
+The next step is to determine which plot mode is to be used, and this
+is determined by parsing the bytes per pixel value:
+
+    R>                            \ *pixels[ofs] bytepp
+    case                          \ *pixels[ofs]
+      1 of _pixel swap C! endof
+      2 of _pixel swap w! endof
+      3 of SDL_BYTEORDER SDL_BIG_ENDIAN = if
+             _pixel 16 RSHIFT over C! 1+
+             _pixel 8 RSHIFT over C! 1+
+             _pixel swap C!
+           else
+             _pixel over C! 1+
+             _pixel 8 RSHIFT over C! 1+
+             _pixel 16 RSHIFT swap C!
+           then
+        endof
+      4 of _pixel swap ! endof
+    endcase
+
+As you can see, the methods for bytes per pixel values of 1, 2 and 4
+are almost identical, except for the size of the value being stored:
+
+        case 1 stores an 8-bit value (C!)
+        case 2 stores a 16-bit value (w!)
+        case 4 stores a 32-bit value (!)
+
+At this point, we run into the Big Endian and Little Endian concept.
+gforth handles the Big/Little Endian storage correctly for these 
+three cases, but we have to code the 24-bit case manually.
+
+If your computer is Little Endian, the hex word $01020304 is stored
+in memory as 04 03 02 01 (with 04 being in the lowest memory location
+and 01 in the highest).
+
+If your computer is Big Endian, the order is reversed, and the bytes
+would be stored in the pattern: 01 02 03 04 (with 01 being in the
+lowest memory location, and 04 in the highest).
+
+At the moment, the SDL_BYTEORDER constant in sdlconstants.fs is set
+to SDL_LIL_ENDIAN.  If you have a Big Endian machine, you will need
+to change this so that SDL_BYTEORDER is set to the SDL_BIG_ENDIAN
+value.
+
+---[Note]------------------------------------------------------------
+An easy way to check is to do the following:
+
+        gforth <cr>
+        create myvar <cr>
+        $01020304 , <cr>
+        myvar 4 dump <cr>
+
+My computer displays:
+
+        2FEB10: 04 03 02 01
+        ok
+
+showing that I have a Little Endian based computer. Therefore, the
+SDL_BYTEORDER constant in my sdlconstants.fs file is set to 1234
+(SDL_LIL_ENDIAN).
+--------------------------------------------------------[End Note]---
+        
+The manual coding for the 24-bit depth is as follows:
+
+If the machine is Big Endian
+
+      3 of SDL_BYTEORDER SDL_BIG_ENDIAN = if
+
+we plot the highest 8-bits:
+
+             _pixel 16 RSHIFT over C! 1+
+
+followed by the middle 8-bits:
+
+             _pixel 8 RSHIFT over C! 1+
+
+and finally the lowest 8-bits:
+
+             _pixel swap C!
+
+If the machine is Little Endian, we plot the lowest 8-bits:
+
+             _pixel over C! 1+
+
+followed by the middle 8-bits:
+
+             _pixel 8 RSHIFT over C! 1+
+
+and finally the highest 8-bits:
+
+             _pixel 16 RSHIFT swap C!
+
+In either Endian selection, we increment the target pointer after
+each pixel plot, to store each pixel in separate 8-bit cells.
+
+The final step in PutPixel is to unlock the surface, if it was locked
+by the previous call to sdl-mustlock.
+
+    \ Now unlock the surface if required
+    *dst sdl-mustlock if
+      *dst sdl-unlocksurface
+    then
+  ;
+
+---[ Wrapping It Up ]------------------------------------------------
+
+The PutPixel function is the first step in creating an SDL code
+library for gforth, which will consist of a number of commonly used
+functions.
+
+I am not including a demo program that uses the PutPixel function as
+I am working on building a library of functions that will do the more
+basic pixel-based functions that the SDL library itself does not have
+in its code base.
+
+I have a PutPixel-based demo written, but am working on a number of
+functions to include in the library prior to posting it for general
+use.
+
+So, until my next, think graphical.
+
+Oh - if anyone has gotten gforth with SDL working on a Windows box,
+let me know.  I have not gotten around to re-installing Windows (yet
+again), and have not been able to install SDL for it as a result.
+------------------------------------------[ End of sdl-tut03.txt ]---
+

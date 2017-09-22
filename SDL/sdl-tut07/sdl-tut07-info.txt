@@ -1,0 +1,21 @@
+=====================================================================
+          File: sdl-tut07.zip
+         Title: gforth: SDL/OpenGL Graphics Part VII
+        Author: Timothy Trussell
+          Date: 03/27/2010
+   Description: SDL_ttf Interface/Library Implementation
+=====================================================================
+               gforth: SDL/OpenGL Graphics Part VII
+=====================================================================
+
+   Adding the SDL_ttf (TrueType Font) extension library to gforth
+
+Code Addendums included:
+
+        sdllib.fs rev 1.0c
+        ttflib.fs rev 1.00
+
+=====================================================================
+Timothy Trussell                                           03/27/2010
+=====================================================================
+
