@@ -1,4 +1,4 @@
-# OpenGL and SDL Graphics Lesson in Gforth.
+# Legacy OpenGL and SDL Graphics Lesson in Gforth.
 
 This github repo is an unzipped copy of ftp://ftp.taygeta.com/pub/Forth/Archive/tutorials/gforth-sdl-opengl/ with the agreement of the author.
 
